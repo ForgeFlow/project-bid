@@ -1,113 +1,98 @@
 # -*- coding: utf-8 -*-
-##############################################################################
-#
-#    Copyright (C) 2014 Eficent (<http://www.eficent.com/>)
-#              <contact@eficent.com>
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU Affero General Public License as
-#    published by the Free Software Foundation, either version 3 of the
-#    License, or (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU Affero General Public License for more details.
-#
-#    You should have received a copy of the GNU Affero General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-##############################################################################
-from openerp.tools.translate import _
-from openerp.osv import fields, orm
+# Copyright 2017 Eficent Business and IT Consulting Services S.L.
+# License AGPL-3.0 or later (https://www.gnu.org/licenses/agpl.html).
+
+from odoo import api, fields, models, _
+from odoo.addons import decimal_precision as dp
+from odoo.exceptions import UserError
 import time
-import decimal_precision as dp
 
 
-class AnalyticPlanMassCreate(orm.TransientModel):
+class AnalyticPlanMassCreate(models.TransientModel):
     _name = "analytic.plan.mass.create"
     _description = "Create multiple analytic plan lines"
 
-    _columns = {
-        'item_ids': fields.one2many(
-            'analytic.plan.mass.create.item',
-            'wiz_id', 'Items'),
-        'template_id': fields.many2one('analytic.plan.mass.create.template',
-                                       'Template', required=True,
-                                       ondelete='cascade'),
-    }
+    item_ids = fields.One2many(
+        'analytic.plan.mass.create.item',
+        'wiz_id',
+        'Items'
+    )
+    template_id = fields.Many2one(
+        'analytic.plan.mass.create.template',
+        'Template',
+        required=True,
+        ondelete='cascade'
+    )
 
-    def _prepare_item(self, cr, uid, account, context=None):
-        return [{
+    @api.model
+    def _prepare_item(self, account):
+        return {
             'account_id': account.id,
             'company_id': account.company_id.id,
-            'date': time.strftime('%Y-%m-%d')
-        }]
+            'date': time.strftime('%Y-%m-%d'),
+            'labor_cost': 0.0
+        }
 
-    def default_get(self, cr, uid, fields, context=None):
-        res = super(AnalyticPlanMassCreate, self).default_get(
-            cr, uid, fields, context=context)
-        analytic_obj = self.pool['account.analytic.account']
-        analytic_account_ids = context.get('active_ids', [])
-        active_model = context.get('active_model')
-
+    @api.model
+    def default_get(self, fields):
+        res = super(AnalyticPlanMassCreate, self).default_get(fields)
+        analytic_obj = self.env['account.analytic.account']
+        analytic_account_ids = self._context.get('active_ids', [])
+        active_model = self._context.get('active_model')
         if not analytic_account_ids:
             return res
         assert active_model == 'account.analytic.account', \
             'Bad context propagation'
-
         items = []
-        for account in analytic_obj.browse(cr, uid, analytic_account_ids,
-                                           context=context):
-                items += self._prepare_item(cr, uid, account, context=context)
+        for account in analytic_obj.browse(analytic_account_ids):
+            items.append((0, 0, self._prepare_item(account)))
         res['item_ids'] = items
-
         return res
 
-    def _prepare_analytic_line_plan_common(self, cr, uid, wizard, item,
-                                           context=None):
-
+    @api.model
+    def _prepare_analytic_line_plan_common(self, wizard, item):
         return {
             'account_id': item.account_id.id,
             'name': item.account_id.name,
             'date': item.date,
             'currency_id': wizard.template_id.currency_id.id,
-            'user_id': uid,
+            'user_id': self._uid,
             'company_id': item.account_id.company_id.id,
             'version_id': wizard.template_id.version_id.id
         }
 
-    def _prepare_analytic_line_plan(self, cr, uid, wizard, item, product,
-                                    amount_currency, type, common,
-                                    context=None):
-        plan_line_obj = self.pool['account.analytic.line.plan']
-        am = plan_line_obj.on_change_amount_currency(
-            cr, uid, False, amount_currency,
-            wizard.template_id.currency_id.id,
-            item.account_id.company_id.id, context=context)
-        if am and 'value' in am and 'amount' in am['value']:
-            amount = am['value']['amount']
+    @api.multi
+    def _prepare_analytic_line_plan(self, wizard, item, product,
+                                    amount_currency, type, common):
+        analytic_line_plan_obj = self.env['account.analytic.line.plan']
+        line_ids = analytic_line_plan_obj.\
+            search([('account_id', '=', item.account_id.id),
+                    ('version_id', '=', wizard.template_id.version_id.id)])
+        amount = 0.0
+        if line_ids:
+            line_ids[0].on_change_amount_currency()
+            amount = line_ids[0]['amount']
         else:
             amount = item.labor_cost
 
         if type == 'expense':
             general_account_id = product.product_tmpl_id.\
-                property_account_expense.id
+                property_account_expense_id.id
             if not general_account_id:
-                general_account_id = product.categ_id.\
-                    property_account_expense_categ.id
+                general_account_id =\
+                    product.categ_id.property_account_expense_categ_id.id
         else:
             general_account_id = product.product_tmpl_id.\
-                property_account_income.id
+                property_account_income_id.id
             if not general_account_id:
                 general_account_id = product.categ_id.\
-                    property_account_income_categ.id
+                    property_account_income_categ_id.id
         if not general_account_id:
-            raise orm.except_orm(_('Error !'),
-                                 _('There is no expense or income account '
-                                   'defined for this product: "%s" (id:%d)')
-                                 % (product.name,
-                                    product.id,))
+            raise UserError(
+                    _('Error !'
+                      'There is no expense or income account '
+                      'defined for this product: "%s" (id:%d)'
+                      ) % (product.name, product.id,))
         if type == 'expense':
             journal_id = product.expense_analytic_plan_journal_id \
                 and product.expense_analytic_plan_journal_id.id \
@@ -117,15 +102,14 @@ class AnalyticPlanMassCreate(orm.TransientModel):
                 and product.revenue_analytic_plan_journal_id.id \
                 or False
         if not journal_id:
-            raise orm.except_orm(_('Error !'),
-                                 _('There is no planning expense or revenue '
-                                   'journals defined for this product: '
-                                   '"%s" (id:%d)') % (product.name,
-                                                      product.id,))
+            raise UserError(
+                        _('Error !'
+                          'There is no planning expense or revenue '
+                          'journals defined for this product: "%s" (id:%d)'
+                          ) % (product.name, product.id,))
         if type == 'expense':
             amount_currency *= -1
             amount *= -1
-
         data = {
             'amount_currency': amount_currency,
             'amount': amount,
@@ -138,61 +122,50 @@ class AnalyticPlanMassCreate(orm.TransientModel):
         data.update(common)
         return data
 
-    def create_analytic_plan_lines(self, cr, uid, ids, context=None):
-        if context is None:
-            context = {}
+    @api.multi
+    def create_analytic_plan_lines(self):
         res = []
-        wizard = self.browse(cr, uid, ids[0], context=context)
-        analytic_line_plan_obj = self.pool['account.analytic.line.plan']
+        wizard = self
+        analytic_line_plan_obj = self.env['account.analytic.line.plan']
         for item in wizard.item_ids:
             if item.delete_existing:
-                line_ids = analytic_line_plan_obj.search(cr, uid,
-                                        [('account_id', '=',
-                                          item.account_id.id),
-                                         ('version_id', '=',
-                                          wizard.template_id.version_id.id)],
-                                        context=context)
-                if line_ids:
-                    analytic_line_plan_obj.unlink(cr, uid, line_ids,
-                                                  context=context)
+                line_ids = analytic_line_plan_obj.\
+                    search([('account_id', '=', item.account_id.id),
+                            ('version_id', '=',
+                             wizard.template_id.version_id.id)])
+                for line in line_ids:
+                    line.unlink()
 
-            common = self._prepare_analytic_line_plan_common(
-                cr, uid, wizard, item, context=context)
-
+            common = self._prepare_analytic_line_plan_common(wizard, item)
             # Create Labor costs
             if item.labor_cost:
-                plan_line_data_labor = \
-                    self._prepare_analytic_line_plan(
-                        cr, uid, wizard, item,
-                        wizard.template_id.labor_cost_product_id,
-                        item.labor_cost, 'expense', common, context=context)
+                plan_line_data_labor = self._prepare_analytic_line_plan(
+                    wizard, item, wizard.template_id.labor_cost_product_id,
+                    item.labor_cost, 'expense', common)
                 plan_line_id = analytic_line_plan_obj.create(
-                    cr, uid, plan_line_data_labor, context=context)
-                res.append(plan_line_id)
+                    plan_line_data_labor)
+                res.append(plan_line_id.id)
 
             # Create Material costs
             if item.material_cost:
-                plan_line_data_material = \
-                    self._prepare_analytic_line_plan(
-                        cr, uid, wizard, item,
-                        wizard.template_id.material_cost_product_id,
-                        item.material_cost, 'expense', common,
-                        context=context)
+                plan_line_data_material = self._prepare_analytic_line_plan(
+                    wizard, item, wizard.template_id.material_cost_product_id,
+                    item.material_cost, 'expense', common)
 
                 plan_line_id = analytic_line_plan_obj.create(
-                    cr, uid, plan_line_data_material, context=context)
-                res.append(plan_line_id)
+                    plan_line_data_material)
+                res.append(plan_line_id.id)
 
             # Create Revenue
             if item.revenue:
                 plan_line_data_revenue = \
                     self._prepare_analytic_line_plan(
-                        cr, uid, wizard, item,
+                        wizard, item,
                         wizard.template_id.revenue_product_id,
-                        item.revenue, 'revenue', common, context=context)
+                        item.revenue, 'revenue', common)
                 plan_line_id = analytic_line_plan_obj.create(
-                    cr, uid, plan_line_data_revenue, context=context)
-                res.append(plan_line_id)
+                    plan_line_data_revenue)
+                res.append(plan_line_id.id)
 
         return {
             'domain': "[('id','in', ["+','.join(map(str, res))+"])]",
@@ -206,33 +179,46 @@ class AnalyticPlanMassCreate(orm.TransientModel):
         }
 
 
-class AnalyticPlanMassCreateItem(orm.TransientModel):
+class AnalyticPlanMassCreateItem(models.TransientModel):
     _name = "analytic.plan.mass.create.item"
     _description = "Create multiple analytic plan lines item"
 
-    _columns = {
-        'wiz_id': fields.many2one(
-            'analytic.plan.mass.create',
-            'Wizard', required=True, ondelete='cascade',
-            readonly=True),
-        'account_id': fields.many2one('account.analytic.account',
-                                      'Analytic Account', required=True),
-        'date': fields.date('Date', required=True),
-        'material_cost': fields.float(
-            'Planned material cost', required=True,
-            help='Planned material cost, expressed it in positive quantity.',
-            digits_compute=dp.get_precision('Account')),
-        'labor_cost': fields.float(
-            'Planned labor cost', required=True,
-            help='Planned labor cost, expressed it in positive quantity.',
-            digits_compute=dp.get_precision('Account')),
-        'revenue': fields.float(
-            'Planned revenue', required=True,
-            help='Planned Revenue',
-            digits_compute=dp.get_precision('Account')),
-        'delete_existing': fields.boolean(
-            'Delete existing',
-            help='Delete existing planned lines. Will delete all planning '
-                 'lines for this analytic account for the version indicated '
-                 'in the template, and regardless of the date.'),
-    }
+    wiz_id = fields.Many2one(
+        'analytic.plan.mass.create',
+        'Wizard',
+        required=True,
+        ondelete='cascade',
+        readonly=True
+    )
+    account_id = fields.Many2one(
+        'account.analytic.account',
+        'Analytic Account',
+        required=True
+    )
+    date = fields.Date(
+        'Date',
+        required=True
+    )
+    material_cost = fields.Float(
+        'Planned material cost',
+        required=True,
+        digits=dp.get_precision('Account'),
+        help='Planned material cost, expressed it in positive quantity.')
+    labor_cost = fields.Float(
+        'Planned labor cost',
+        required=True,
+        digits=dp.get_precision('Account'),
+        help='Planned labor cost, expressed it in positive quantity.',
+    )
+    revenue = fields.Float(
+        'Planned revenue',
+        required=True,
+        digits=dp.get_precision('Account'),
+        help='Planned Revenue'
+    )
+    delete_existing = fields.Boolean(
+        'Delete existing',
+        help='''Delete existing planned lines. Will delete all planning lines
+            for this analytic account for the version indicated in the
+            template, and regardless of the date.'''
+    )
