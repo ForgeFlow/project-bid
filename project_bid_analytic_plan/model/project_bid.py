@@ -13,7 +13,7 @@ class ProjectBid(models.Model):
 
     project_id = fields.Many2one(
             'project.project', 'Project', required=False,
-            ondelete='set null', select=True,
+            ondelete='set null', index=True,
             readonly=True, states={'draft': [('readonly', False)]})
     plan_lines = fields.Many2many(
             'account.analytic.line.plan',
