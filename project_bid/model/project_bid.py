@@ -518,7 +518,7 @@ class ProjectBid(models.Model):
              ('confirm', 'Awaiting approval'),
              ('approve', 'Approved'),
              ('cancel', 'Cancelled')], 'Status',
-            select=True, required=True, readonly=True,
+            index=True, required=True, readonly=True,
             default = 'draft',
             help=' * The \'Draft\' status is used when a user is encoding '
                  'a new bid. '
@@ -530,7 +530,7 @@ class ProjectBid(models.Model):
                  'the bid.')
     bid_template_id = fields.Many2one('project.bid.template',
                                            'Bid Template', required=True,
-                                           ondelete='cascade', select=True,
+                                           ondelete='cascade', index=True,
                                            readonly=True,
                                            states={
                                                'draft': [('readonly', False)]
@@ -548,7 +548,7 @@ class ProjectBid(models.Model):
                                       states={
                                           'draft': [('readonly', False)]
                                       })
-    code = fields.Char('Reference', select=True, required=True)
+    code = fields.Char('Reference', index=True, required=True)
     complete_code = fields.Char(
             compute= '_complete_bid_hierarchy_code_calc',
             string='Complete Reference',
@@ -874,7 +874,7 @@ class ProjectBidComponent(models.Model):
         return self.env.context.get('bid_id') or 0.0
 
     bid_id = fields.Many2one('project.bid', 'Project Bid',
-                              select=True, required=True,
+                              index=True, required=True,
                               ondelete='cascade',
                              default=_default_bid_id)
     bid_template_id = fields.Many2one(related='bid_id.bid_template_id',
@@ -1028,7 +1028,7 @@ class ProjectBidComponentMaterial(models.Model):
 
     bid_component_id = fields.Many2one('project.bid.component',
                                        'Project Bid Component',
-                                       select=True, required=True,
+                                       index=True, required=True,
                                        ondelete='cascade')
     bid_id = fields.Many2one(related="bid_component_id.bid_id", readonly=True)
     product_id = fields.Many2one('product.product','Material product')
@@ -1074,7 +1074,7 @@ class ProjectBidComponentLabor(models.Model):
 
     bid_component_id = fields.Many2one('project.bid.component',
                                         'Project Bid Component',
-                                        select=True, required=True,
+                                        index=True, required=True,
                                         ondelete='cascade')
     bid_id = fields.Many2one(related='bid_component_id.bid_id',
                              string="Bid",
@@ -1141,7 +1141,7 @@ class ProjectBidOtherLabor(models.Model):
         return True
 
     bid_id = fields.Many2one('project.bid', 'Project Bid',
-                              select=True, required=True,
+                              index=True, required=True,
                               ondelete='cascade')
     product_id = fields.Many2one('product.product',
                                   'Labor product', required=True)
@@ -1211,7 +1211,7 @@ class ProjectBidOtherExpenses(models.Model):
         return self.env.context.get('overhead_rate') or 0.0
 
     bid_id = fields.Many2one('project.bid', 'Project Bid',
-                              select=True, required=True,
+                              index=True, required=True,
                               ondelete='cascade')
     product_id = fields.Many2one('product.product',
                                   'Expenses product', required=True)
