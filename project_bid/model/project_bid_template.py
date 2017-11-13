@@ -2,10 +2,9 @@
 # © 2015-17 Eficent Business and IT Consulting Services S.L.
 # License LGPL-3.0 or later (https://www.gnu.org/licenses/lgpl.html).
 
-from openerp import models, fields, api
-from openerp.tools.translate import _
+from odoo import _, models, fields, api
 import time
-from openerp.exceptions import ValidationError
+from odoo.exceptions import ValidationError
 
 
 class ProjectBidTemplate(models.Model):
@@ -31,6 +30,6 @@ class ProjectBidTemplate(models.Model):
         for template in self:
             for labor in template.default_component_labor:
                 if labor.uom_id.id is not template.labor_uom_id.id:
-                    raise ValidationError (_('The labor must be entered in the '
-                                           'default labor unit of measure.'))
+                    raise ValidationError(_('The labor must be entered in the '
+                                            'default labor unit of measure.'))
         return True
