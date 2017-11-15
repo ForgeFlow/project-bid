@@ -90,3 +90,13 @@ class TestProjectBid(common.TransactionCase):
         self.assertEqual(self.project_bid.state, 'confirm')
         self.project_bid.action_button_approve()
         self.assertEqual(self.project_bid.state, 'approve')
+        self.assertEqual(self.project_bid.total_npm_percent,
+                         self.project_bid.wbs_total_npm_percent)
+        self.assertEqual(self.project_bid.total_gp,
+                         self.project_bid.wbs_total_gp)
+        self.assertEqual(self.project_bid.total_overhead,
+                         self.project_bid.wbs_total_overhead)
+        self.assertEqual(self.project_bid.total_npm,
+                         self.project_bid.wbs_total_npm)
+        self.assertEqual(self.project_bid.total_npm_percent,
+                         self.project_bid.wbs_total_npm_percent)
