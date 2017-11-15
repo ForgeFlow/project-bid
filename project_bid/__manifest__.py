@@ -18,5 +18,4 @@
         "data/project_bid_data.xml",
     ],
     'installable': True,
-    'active': False,
 }
