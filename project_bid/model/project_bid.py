@@ -2,10 +2,10 @@
 # © 2015-17 Eficent Business and IT Consulting Services S.L.
 # License LGPL-3.0 or later (https://www.gnu.org/licenses/lgpl.html).
 
-from openerp import models, fields, api, _
+from odoo import api, fields, models, _
 import time
 import openerp.addons.decimal_precision as dp
-from openerp.exceptions import ValidationError
+from odoo.exceptions import ValidationError
 
 
 class ProjectBidTotalLabor(models.TransientModel):
@@ -518,7 +518,7 @@ class ProjectBid(models.Model):
              ('confirm', 'Awaiting approval'),
              ('approve', 'Approved'),
              ('cancel', 'Cancelled')], 'Status',
-            select=True, required=True, readonly=True,
+            index=True, required=True, readonly=True,
             default = 'draft',
             help=' * The \'Draft\' status is used when a user is encoding '
                  'a new bid. '
@@ -529,12 +529,12 @@ class ProjectBid(models.Model):
                  '\n* The \'Cancelled\' status is used to cancel '
                  'the bid.')
     bid_template_id = fields.Many2one('project.bid.template',
-                                           'Bid Template', required=True,
-                                           ondelete='cascade', select=True,
-                                           readonly=True,
-                                           states={
-                                               'draft': [('readonly', False)]
-                                           })
+                                       'Bid Template', required=True,
+                                       ondelete='cascade', index=True,
+                                       readonly=True,
+                                       states={
+                                           'draft': [('readonly', False)]
+                                       })
     parent_id = fields.Many2one('project.bid', 'Parent Bid',
                                      required=False, ondelete='set null',
                                      readonly=True,
@@ -548,7 +548,7 @@ class ProjectBid(models.Model):
                                       states={
                                           'draft': [('readonly', False)]
                                       })
-    code = fields.Char('Reference', select=True, required=True)
+    code = fields.Char('Reference', index=True, required=True)
     complete_code = fields.Char(
             compute= '_complete_bid_hierarchy_code_calc',
             string='Complete Reference',
@@ -725,17 +725,8 @@ class ProjectBid(models.Model):
 
     @api.multi
     def name_get(self):
-        ids = self
-        if type(self) is int:
-            ids = [self]
-        new_list = []
-        for i in ids:
-            if i not in new_list:
-                new_list.append(i)
-        ids = new_list
-
         res = []
-        for item in ids:
+        for item in self:
             data = []
             bid = item
             while bid:
@@ -757,20 +748,10 @@ class ProjectBidComponent(models.Model):
     _name = 'project.bid.component'
     _description = "Project Bid Component"
 
-    def name_get(self, cr, uid, ids, context=None):
-        if not ids:
-            return []
-        if type(ids) is int:
-            ids = [ids]
-        new_list = []
-        for i in ids:
-            if i not in new_list:
-                new_list.append(i)
-        ids = new_list
-
+    @api.multi
+    def name_get(self):
         res = []
-        obj = self.pool.get('project.bid')
-        for item in self.browse(cr, uid, ids, context=context):
+        for item in self:
             data = []
             bid_component = item
             if bid_component.name:
@@ -781,7 +762,7 @@ class ProjectBidComponent(models.Model):
             data.insert(0, bid_component.bid_id.name)
 
             data = ' / '.join(data)
-            res2 = obj.code_get(cr, uid,[bid_component.bid_id.id], context=None)
+            res2 = bid_component.bid_id.code_get()
             if res2:
                 data = '[' + res2[0][1] + '] ' + data
 
@@ -857,9 +838,9 @@ class ProjectBidComponent(models.Model):
                     'product_id': product.id,
                     'quantity': 0.0
                 }
-                res.append(val)
-
-            bid_template.labor=res
+                res.append((0, 0, val))
+            bid_template.labor = res
+        return res
 
     @api.model
     def _default_profit_rate(self):
@@ -874,22 +855,20 @@ class ProjectBidComponent(models.Model):
         return self.env.context.get('bid_id') or 0.0
 
     bid_id = fields.Many2one('project.bid', 'Project Bid',
-                              select=True, required=True,
+                              index=True, required=True,
                               ondelete='cascade',
                              default=_default_bid_id)
     bid_template_id = fields.Many2one(related='bid_id.bid_template_id',
                                       string="Bid Template",
                                       readonly=True)
-    labor = fields.One2many('project.bid.component.labor',
-                             'bid_component_id', 'Labor',
-                            default=_default_labor)
-    bid_component_template_id = fields.Many2one('project.bid.component',
-                                                'Project Bid Component Template',
-                                                 required=False,
-                                                 ondelete='set null')
-    material_ids = fields.One2many('project.bid.component.material',
-                                    'bid_component_id',
-                                    'Materials')
+    labor = fields.One2many(
+        'project.bid.component.labor', 'bid_component_id', 'Labor',
+        default=_default_labor)
+    bid_component_template_id = fields.Many2one(
+        'project.bid.component', 'Project Bid Component Template',
+        required=False, ondelete='set null')
+    material_ids = fields.One2many(
+        'project.bid.component.material', 'bid_component_id', 'Materials')
     name = fields.Char('Description', size=256, required=True)
     quantity = fields.Float('Quantity', compute="_get_totals",multi='totals')
     overhead_rate = fields.Float(
@@ -1028,7 +1007,7 @@ class ProjectBidComponentMaterial(models.Model):
 
     bid_component_id = fields.Many2one('project.bid.component',
                                        'Project Bid Component',
-                                       select=True, required=True,
+                                       index=True, required=True,
                                        ondelete='cascade')
     bid_id = fields.Many2one(related="bid_component_id.bid_id", readonly=True)
     product_id = fields.Many2one('product.product','Material product')
@@ -1074,7 +1053,7 @@ class ProjectBidComponentLabor(models.Model):
 
     bid_component_id = fields.Many2one('project.bid.component',
                                         'Project Bid Component',
-                                        select=True, required=True,
+                                        index=True, required=True,
                                         ondelete='cascade')
     bid_id = fields.Many2one(related='bid_component_id.bid_id',
                              string="Bid",
@@ -1141,7 +1120,7 @@ class ProjectBidOtherLabor(models.Model):
         return True
 
     bid_id = fields.Many2one('project.bid', 'Project Bid',
-                              select=True, required=True,
+                              index=True, required=True,
                               ondelete='cascade')
     product_id = fields.Many2one('product.product',
                                   'Labor product', required=True)
@@ -1211,7 +1190,7 @@ class ProjectBidOtherExpenses(models.Model):
         return self.env.context.get('overhead_rate') or 0.0
 
     bid_id = fields.Many2one('project.bid', 'Project Bid',
-                              select=True, required=True,
+                              index=True, required=True,
                               ondelete='cascade')
     product_id = fields.Many2one('product.product',
                                   'Expenses product', required=True)
