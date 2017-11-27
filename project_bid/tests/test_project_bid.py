@@ -17,6 +17,7 @@ class TestProjectBid(common.TransactionCase):
         self.product = self.env.ref('product.product_product_2')
         self.partenr = self.env.ref('base.partner_root')
 
+        # Create Project Bid Template
         self.project_bid_temp = self.project_bid_temp_model.create({
             'name': 'Test Project Bid Template',
             'profit_rate': 1.0,
@@ -24,6 +25,8 @@ class TestProjectBid(common.TransactionCase):
             'labor_uom_id': self.uom_hour.id,
             'default_component_labor': [(6, 0, self.product.ids)]
         })
+
+        # Create Project Bid Parent
         self.project_bid_parent = self.project_bid_model.create({
             'bid_template_id': self.project_bid_temp.id,
             'partner_id': self.partenr.id,
@@ -44,6 +47,7 @@ class TestProjectBid(common.TransactionCase):
             'profit_rate': 3.0,
         })
 
+        # Create Project Bid
         self.project_bid = self.project_bid_model.create({
             'bid_template_id': self.project_bid_temp.id,
             'partner_id': self.partenr.id,
@@ -65,8 +69,9 @@ class TestProjectBid(common.TransactionCase):
             'profit_rate': 3.0,
         })
 
-        self.project_bid_compo = self.project_bid_compo_model.create({
-            'name': 'Test Project Bid Component',
+        # Create Project Bid Component Parent
+        self.project_bid_compo_1 = self.project_bid_compo_model.create({
+            'name': 'Test Project Bid Component Parent',
             'overhead_rate': 1.0,
             'profit_rate': 2.0,
             'bid_id': self.project_bid.id,
@@ -83,6 +88,17 @@ class TestProjectBid(common.TransactionCase):
                 'default_code': 'Test Project Bid Component Material',
                 'unit_cost': 100})]
         })
+
+        # Create Project Bid Component Child
+        self.project_bid_compo = self.project_bid_compo_model.create({
+            'name': 'Test Project Bid Component Child',
+            'bid_id': self.project_bid.id,
+        })
+
+        # Onchang Project Bid Component
+        data = {'bid_component_template_id': self.project_bid_compo_1.id}
+        new_line = self.project_bid_compo_model.new(data)
+        new_line.on_change_bid_component_template_id()
 
     def test_project(self):
         self.assertEqual(self.project_bid.state, 'draft')
