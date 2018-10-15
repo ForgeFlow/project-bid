@@ -82,6 +82,7 @@ class ProjectBid(models.Model):
             'product_id': product_id.id,
             'product_uom_id': uom_id.id,
             'unit_amount': line.quantity,
+            'unit_price': product_id.standard_price,
             'amount': -1*line.unit_cost *
             line.quantity,
             'general_account_id': general_account_id,
@@ -144,6 +145,7 @@ class ProjectBid(models.Model):
                 'product_id': product_id.id,
                 'product_uom_id': product_id.uom_id.id,
                 'unit_amount': 1,
+                'unit_price': bid.total_income,
                 'amount': bid.total_income,
                 'general_account_id': general_account_id,
                 'journal_id': journal_id,
