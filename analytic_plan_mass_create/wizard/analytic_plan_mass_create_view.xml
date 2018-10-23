@@ -23,13 +23,12 @@
                           </tree>
                      </field>
                  </group>
-                 <newline/>
-                 <group colspan="2">
+                 <footer>
                      <button name="create_analytic_plan_lines"
                              string="Create" type="object"
                              class="oe_highlight"/>
                      <button special="cancel" string="Cancel" class="oe_link"/>
-                 </group>
+                 </footer>
             </form>
         </field>
     </record>
@@ -47,7 +46,7 @@
     <record model="ir.values" id="analytic_plan_mass_create">
         <field name="model_id" ref="analytic.model_account_analytic_account" />
         <field name="object" eval="1" />
-        <field name="name">Create Request for Quotation</field>
+        <field name="name">Create Analytic Planning Lines</field>
         <field name="key2">client_action_multi</field>
         <field name="value" eval="'ir.actions.act_window,' + str(ref('action_analytic_plan_mass_create'))" />
         <field name="key">action</field>
