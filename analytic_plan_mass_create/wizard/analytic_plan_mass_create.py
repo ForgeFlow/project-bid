@@ -201,18 +201,15 @@ class AnalyticPlanMassCreateItem(models.TransientModel):
     )
     material_cost = fields.Float(
         'Planned material cost',
-        required=True,
         digits=dp.get_precision('Account'),
         help='Planned material cost, expressed it in positive quantity.')
     labor_cost = fields.Float(
         'Planned labor cost',
-        required=True,
         digits=dp.get_precision('Account'),
         help='Planned labor cost, expressed it in positive quantity.',
     )
     revenue = fields.Float(
         'Planned revenue',
-        required=True,
         digits=dp.get_precision('Account'),
         help='Planned Revenue'
     )
