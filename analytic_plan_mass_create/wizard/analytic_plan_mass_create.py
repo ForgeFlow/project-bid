@@ -64,50 +64,50 @@ class AnalyticPlanMassCreate(models.TransientModel):
     @api.multi
     def _prepare_analytic_line_plan(self, wizard, item, product,
                                     amount_currency, type, common):
-        analytic_line_plan_obj = self.env['account.analytic.line.plan']
-        line_ids = analytic_line_plan_obj.\
-            search([('account_id', '=', item.account_id.id),
-                    ('version_id', '=', wizard.template_id.version_id.id)])
-        amount = 0.0
-        if line_ids:
-            line_ids[0].on_change_amount_currency()
-            amount = line_ids[0]['amount']
-        else:
-            amount = item.labor_cost
-
         if type == 'expense':
             general_account_id = product.product_tmpl_id.\
                 property_account_expense_id.id
             if not general_account_id:
                 general_account_id =\
                     product.categ_id.property_account_expense_categ_id.id
+            journal_id = product.expense_analytic_plan_journal_id \
+                         and product.expense_analytic_plan_journal_id.id \
+                         or False
+            amount = item.material_cost
+        elif type == 'labor':
+            general_account_id = product.product_tmpl_id.\
+                property_account_expense_id.id
+            if not general_account_id:
+                general_account_id =\
+                    product.categ_id.property_account_expense_categ_id.id
+            journal_id = product.expense_analytic_plan_journal_id \
+                and product.expense_analytic_plan_journal_id.id \
+                or False
+            amount = item.labor_cost
         else:
             general_account_id = product.product_tmpl_id.\
                 property_account_income_id.id
             if not general_account_id:
                 general_account_id = product.categ_id.\
                     property_account_income_categ_id.id
+            amount = item.revenue
+            journal_id = product.revenue_analytic_plan_journal_id \
+                and product.revenue_analytic_plan_journal_id.id \
+                or False
         if not general_account_id:
             raise UserError(
                     _('Error !'
                       'There is no expense or income account '
                       'defined for this product: "%s" (id:%d)'
                       ) % (product.name, product.id,))
-        if type == 'expense':
-            journal_id = product.expense_analytic_plan_journal_id \
-                and product.expense_analytic_plan_journal_id.id \
-                or False
-        else:
-            journal_id = product.revenue_analytic_plan_journal_id \
-                and product.revenue_analytic_plan_journal_id.id \
-                or False
+
         if not journal_id:
             raise UserError(
                         _('Error !'
                           'There is no planning expense or revenue '
                           'journals defined for this product: "%s" (id:%d)'
                           ) % (product.name, product.id,))
-        if type == 'expense':
+        if type in ('expense', 'labor'):
             amount_currency *= -1
             amount *= -1
         data = {
@@ -141,7 +141,7 @@ class AnalyticPlanMassCreate(models.TransientModel):
             if item.labor_cost:
                 plan_line_data_labor = self._prepare_analytic_line_plan(
                     wizard, item, wizard.template_id.labor_cost_product_id,
-                    item.labor_cost, 'expense', common)
+                    item.labor_cost, 'labor', common)
                 plan_line_id = analytic_line_plan_obj.create(
                     plan_line_data_labor)
                 res.append(plan_line_id.id)
