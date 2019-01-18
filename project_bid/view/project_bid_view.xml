@@ -349,7 +349,7 @@
     </record>
 
     <record id="action_project_bid_open_form" model="ir.actions.act_window">
-        <field name="name">Project Bid</field>
+        <field name="name">Project Bids</field>
         <field name="res_model">project.bid</field>
         <field name="view_type">form</field>
         <field name="view_mode">tree,form</field>
@@ -365,7 +365,7 @@
     </record>
 
     <menuitem groups="project_bid.group_project_bid_user,project_bid.group_project_bid_manager"
-        action="action_project_bid_open_form"
-        id="project_bid_entries"
-        parent="project.menu_project_management"/>
+              action="action_project_bid_open_form"
+              id="project_bid_entries"
+              parent="project.menu_main_pm"/>
 </odoo>
