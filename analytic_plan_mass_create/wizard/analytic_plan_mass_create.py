@@ -115,7 +115,7 @@ class AnalyticPlanMassCreate(models.TransientModel):
             'amount': amount,
             'product_id': product.id,
             'product_uom_id':
-                wizard.template_id.labor_cost_product_id.uom_id.id,
+                product.uom_id.id,
             'general_account_id': general_account_id,
             'journal_id': journal_id,
         }
