@@ -28,7 +28,7 @@
                 <notebook>
                     <page string="Component Labor" name="component_labor">
                         <group name="labor">
-                            <field name="default_component_labor"/>
+                            <field name="default_component_labor" domain="[('type', '=', 'service')]"/>
                         </group>
                     </page>
                 </notebook>
