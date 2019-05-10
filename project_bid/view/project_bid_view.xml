@@ -36,7 +36,7 @@
         <field name="type">tree</field>
         <field name="arch" type="xml">
             <tree string="Component-specific labor" editable="top">
-                <field name="product_id"/>
+                <field name="product_id" domain="[('type', '=', 'service')]"/>
                 <field name="quantity"/>
                 <field name="uom_id"/>
                 <field name="unit_cost"/>
@@ -117,7 +117,7 @@
         <field name="type">tree</field>
         <field name="arch" type="xml">
             <tree string="Other Labor" editable="top">
-                <field name="product_id"/>
+                <field name="product_id" domain="[('type', '=', 'service')]"/>
                 <field name="quantity"/>
                 <field name="uom_id"/>
                 <field name="unit_cost"/>
