@@ -3,7 +3,6 @@
     <record id="view_project_bid_template_tree" model="ir.ui.view">
         <field name="name">project.bid.template.tree</field>
         <field name="model">project.bid.template</field>
-        <field name="type">tree</field>
         <field name="arch" type="xml">
             <tree string="Template">
                 <field name="name"/>
@@ -14,9 +13,8 @@
     <record id="view_project_bid_template_form" model="ir.ui.view">
         <field name="name">project.bid.template.form</field>
         <field name="model">project.bid.template</field>
-        <field name="type">form</field>
         <field name="arch" type="xml">
-            <form string="Project Bid Template" version="7.0">
+            <form string="Project Bid Template">
                 <group name="bid_name">
                     <field name="name" placeholder="Bid template name..."/>
                 </group>
@@ -38,7 +36,6 @@
     <record id="view_project_bid_template_filter" model="ir.ui.view">
         <field name="name">project.bid.template.select</field>
         <field name="model">project.bid.template</field>
-        <field name="type">search</field>
         <field name="arch" type="xml">
             <search string="Search bid templates">
                 <group col='6' colspan='5'>

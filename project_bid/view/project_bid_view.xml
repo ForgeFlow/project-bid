@@ -3,7 +3,6 @@
     <record id="view_project_bid_total_labor" model="ir.ui.view">
         <field name="name">project.bid.total.labor.tree</field>
         <field name="model">project.bid.total.labor</field>
-        <field name="type">tree</field>
         <field name="arch" type="xml">
             <tree string="Total Labor">
                 <field name="name"/>
@@ -18,7 +17,6 @@
     <record id="view_project_bid_totals" model="ir.ui.view">
         <field name="name">project.bid.totals.tree</field>
         <field name="model">project.bid.totals</field>
-        <field name="type">tree</field>
         <field name="arch" type="xml">
             <tree string="Totals">
                 <field name="name"/>
@@ -33,7 +31,6 @@
     <record id="view_project_bid_component_labor" model="ir.ui.view">
         <field name="name">project.bid.component.labor.tree</field>
         <field name="model">project.bid.component.labor</field>
-        <field name="type">tree</field>
         <field name="arch" type="xml">
             <tree string="Component-specific labor" editable="top">
                 <field name="product_id" domain="[('type', '=', 'service')]"/>
@@ -51,7 +48,6 @@
     <record id="view_project_bid_component_material" model="ir.ui.view">
         <field name="name">project.bid.component.material.tree</field>
         <field name="model">project.bid.component.material</field>
-        <field name="type">tree</field>
         <field name="arch" type="xml">
             <tree string="Component Materials" editable="top">
                 <field name="product_id"/>
@@ -70,7 +66,6 @@
     <record id="view_project_bid_component_tree" model="ir.ui.view">
         <field name="name">project.bid.component.tree</field>
         <field name="model">project.bid.component</field>
-        <field name="type">tree</field>
         <field name="arch" type="xml">
             <tree string="Deriverables">
                 <field name="bid_id"/>
@@ -90,9 +85,8 @@
     <record id="view_project_bid_component_form" model="ir.ui.view">
         <field name="name">project.bid.component.form</field>
         <field name="model">project.bid.component</field>
-        <field name="type">form</field>
         <field name="arch" type="xml">
-            <form string="Project Bid Component" version="7.0">
+            <form string="Project Bid Component">
                 <group name="component">
                     <field name="bid_component_template_id"
                            options="{'no_create': True}"/>
@@ -114,7 +108,6 @@
     <record id="view_project_bid_other_labor" model="ir.ui.view">
         <field name="name">project.bid.other.labor.tree</field>
         <field name="model">project.bid.other.labor</field>
-        <field name="type">tree</field>
         <field name="arch" type="xml">
             <tree string="Other Labor" editable="top">
                 <field name="product_id" domain="[('type', '=', 'service')]"/>
@@ -134,7 +127,6 @@
     <record id="view_project_bid_other_expenses" model="ir.ui.view">
         <field name="name">project.bid.other.expenses.tree</field>
         <field name="model">project.bid.other.expenses</field>
-        <field name="type">tree</field>
         <field name="arch" type="xml">
             <tree string="Other Expenses" editable="top">
                 <field name="product_id"/>
@@ -155,9 +147,8 @@
     <record id="view_project_bid_form" model="ir.ui.view">
         <field name="name">project.bid.form</field>
         <field name="model">project.bid</field>
-        <field name="type">form</field>
         <field name="arch" type="xml">
-            <form string="Project Bid" version="7.0">
+            <form string="Project Bid">
                 <header>
                     <button name="action_button_confirm"
                             states="draft"
@@ -200,16 +191,11 @@
                     </group>
                     <group name="wbs_totals" colspan="4">
                         <group name="labor" colspan="4">
-                            <label string="Labor:"/>
-                            <newline/>
-                            <field name="wbs_totals_non_material"
-                                   nolabel="1"/>
+                            <field name="wbs_totals_non_material"/>
                         </group>
                         <newline/>
                         <group name="totals" colspan="4">
-                            <label string="Totals:" />
-                            <newline/>
-                            <field name="wbs_totals_all" nolabel="1"/>
+                            <field name="wbs_totals_all"/>
                         </group>
                     </group>
                     <notebook>
@@ -248,16 +234,11 @@
                         <page string="Bid Totals"
                               name="bid_totals">
                             <group>
-                                <label string="Labor:"/>
-                                <newline/>
-                                <field name="totals_non_material"
-                                       nolabel="1"/>
+                                <field name="totals_non_material"/>
                             </group>
                             <newline/>
                             <group>
-                                <label string="Totals:" />
-                                <newline/>
-                                <field name="totals_all" nolabel="1"/>
+                                <field name="totals_all"/>
                             </group>
                             <group>
                                 <field name="total_income"/>
@@ -290,9 +271,7 @@
                     </notebook>
                 </sheet>
                 <div class="oe_chatter">
-                    <field name="message_follower_ids"
-                           widget="mail_followers"
-                           help="Follow this bid to automatically track the events associated." groups="base.group_user"/>
+                    <field name="message_follower_ids" widget="mail_followers"/>
                     <field name="message_ids" widget="mail_thread"/>
                 </div>
             </form>
@@ -302,7 +281,6 @@
     <record id="view_project_bid_tree" model="ir.ui.view">
         <field name="name">project.bid.tree</field>
         <field name="model">project.bid</field>
-        <field name="type">tree</field>
         <field name="arch" type="xml">
             <tree string="Bid" fonts="bold:message_unread==True"
                   colors="red:due_by and (due_by &lt; current_date) and state=='draft';black:state in ('draft','approve');blue:state=='confirm';grey:state=='cancel'">
@@ -351,7 +329,6 @@
     <record id="action_project_bid_open_form" model="ir.actions.act_window">
         <field name="name">Project Bids</field>
         <field name="res_model">project.bid</field>
-        <field name="view_type">form</field>
         <field name="view_mode">tree,form</field>
         <field name="search_view_id" ref="view_project_bid_filter" />
     </record>
