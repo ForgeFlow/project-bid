@@ -1,5 +1,5 @@
-.. image:: https://img.shields.io/badge/license-LGPLv3-blue.svg
-   :target: https://www.gnu.org/licenses/lgpl.html
+.. image:: https://img.shields.io/badge/license-LGPL--3-blue.png
+   :target: https://www.gnu.org/licenses/lgpl
    :alt: License: LGPL-3
 
 ===========
@@ -28,13 +28,10 @@ and sustainability.
 
 The statement is presented as follows:
 
-+ Revenue
-- Cost of Sales
-= Gross Profit
-= Gross Margin (%)
-- Total Overhead
-= Net Profit Margin
-= Net Profit Margin (%)
+
+Revenue - Cost of Sales = Gross Profit = Gross Margin (%)
+
+Gross Profit - Total Overhead = Net Profit Margin = Net Profit Margin (%)
 
 ** Revenue represents ** the income that you plan to receive from the
 customer out of the project. It is obtained in the Bid application as a
@@ -94,12 +91,6 @@ This section allows the user to enter other costs not directly related to
 specific Components. E.g. Flights.
 
 
-Installation
-============
-
-No specific installation requirements.
-
-
 Configuration
 =============
 
@@ -126,9 +117,6 @@ Usage
   parameters that will be used across multiple bids.
 * Go to 'Project / Project Bid' to create new Bids.
 
-.. image:: https://odoo-community.org/website/image/ir.attachment/5784_f2813bd/datas
-   :alt: Try me on Runbot
-   :target: https://runbot.odoo-community.org/runbot/140/9.0
 
 Bug Tracker
 ===========
@@ -142,11 +130,6 @@ help us smashing it by providing a detailed and welcomed feedback.
 Credits
 =======
 
-Images
-------
-
-* Odoo Community Association: `Icon <https://github.com/OCA/maintainer-tools/blob/master/template/module/static/description/icon.svg>`_.
-
 Contributors
 ------------
 
@@ -156,14 +139,4 @@ Contributors
 Maintainer
 ----------
 
-.. image:: https://odoo-community.org/logo.png
-   :alt: Odoo Community Association
-   :target: https://odoo-community.org
-
-This module is maintained by the OCA.
-
-OCA, or the Odoo Community Association, is a nonprofit organization whose
-mission is to support the collaborative development of Odoo features and
-promote its widespread use.
-
-To contribute to this module, please visit https://odoo-community.org.
+This module is maintained by Eficent.

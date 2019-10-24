@@ -1,52 +1,52 @@
-# -*- coding: utf-8 -*-
-# © 2015-17 Eficent Business and IT Consulting Services S.L.
-# License LGPL-3.0 or later (https://www.gnu.org/licenses/lgpl.html).
-
 from odoo import api, fields, models, _
 import time
-import openerp.addons.decimal_precision as dp
+from odoo.addons import decimal_precision as dp
 from odoo.exceptions import ValidationError
 
 
 class ProjectBidTotalLabor(models.TransientModel):
-    _name = 'project.bid.total.labor'
+    _name = "project.bid.total.labor"
     _description = "Project Bid Labor Totals"
 
-    bid_id = fields.Many2one('project.bid', string='Bid', required=True)
-    name = fields.Char('Description', size=256)
-    quantity = fields.Float('Hours')
-    cogs = fields.Float('COGS')
-    overhead = fields.Float('Overhead cost')
-    cost = fields.Float('Total cost')
-    profit = fields.Float('Profit')
-    sell = fields.Float('Revenue')
+    bid_id = fields.Many2one("project.bid", string="Bid", required=True)
+    name = fields.Char("Description", size=256)
+    quantity = fields.Float(
+        "Hours", digits=dp.get_precision("Product Unit of Measure")
+    )
+    cogs = fields.Float("COGS", digits=dp.get_precision("Account"))
+    overhead = fields.Float(
+        "Overhead cost", digits=dp.get_precision("Account")
+    )
+    cost = fields.Float("Total cost", digits=dp.get_precision("Account"))
+    profit = fields.Float("Profit", digits=dp.get_precision("Account"))
+    sell = fields.Float("Revenue", digits=dp.get_precision("Account"))
 
 
 class ProjectBidTotals(models.TransientModel):
-    _name = 'project.bid.totals'
+    _name = "project.bid.totals"
     _description = "Project Bid Totals"
 
-    bid_id = fields.Many2one('project.bid', string='Bid', required=True)
-    name = fields.Char('Description', size=256)
-    cogs = fields.Float('COGS')
-    overhead = fields.Float('Overhead cost')
-    cost = fields.Float('Total cost')
-    profit = fields.Float('Profit')
-    sell = fields.Float('Revenue')
+    bid_id = fields.Many2one("project.bid", string="Bid", required=True)
+    name = fields.Char("Description", size=256)
+    cogs = fields.Float("COGS", digits=dp.get_precision("Account"))
+    overhead = fields.Float(
+        "Overhead cost", digits=dp.get_precision("Account")
+    )
+    cost = fields.Float("Total cost", digits=dp.get_precision("Account"))
+    profit = fields.Float("Profit", digits=dp.get_precision("Account"))
+    sell = fields.Float("Revenue", digits=dp.get_precision("Account"))
 
 
 class ProjectBid(models.Model):
-    _name = 'project.bid'
+    _name = "project.bid"
     _description = "Project Bid"
-    _inherit = ['mail.thread', 'ir.needaction_mixin']
+    _inherit = ["mail.thread"]
 
-    @api.constrains('parent_id')
+    @api.constrains("parent_id")
     @api.one
     def check_recursion(self):
         if not super(ProjectBid, self)._check_recursion():
-            raise ValidationError(
-                _('The parent cannot be itself'),
-            )
+            raise ValidationError(_("The parent cannot be itself"))
 
     @api.multi
     def _get_child_bids(self):
@@ -56,7 +56,8 @@ class ProjectBid(models.Model):
             result[curr_id.id] = True
             curr_ids.append(curr_id.id)
         # Now add the children
-        self.env.cr.execute('''
+        self.env.cr.execute(
+            """
         WITH RECURSIVE children AS (
         SELECT parent_id, id
         FROM project_bid
@@ -67,9 +68,11 @@ class ProjectBid(models.Model):
         JOIN children b ON(a.parent_id = b.id)
         )
         SELECT * FROM children order by parent_id
-        ''', (tuple(curr_ids),))
+        """,
+            (tuple(curr_ids),),
+        )
         res = self.env.cr.fetchall()
-        for x, y in res:
+        for (x, y) in res:
             result[y] = True
         return result
 
@@ -79,71 +82,63 @@ class ProjectBid(models.Model):
         return res.keys()
 
     @api.multi
-    def _get_totals_labor(self):
+    def _compute_totals_labor(self):
         for bid in self:
-            costs_line_obj = self.env['project.bid.total.labor']
+            costs_line_obj = self.env["project.bid.total.labor"]
             vals = []
             items = {}
             for component in bid.components:
                 for labor in component.labor:
                     if labor.product_id.id not in items:
                         items[labor.product_id.id] = {
-                            'name': labor.product_id.name,
-                            'quantity': labor.quantity,
-                            'cogs': labor.cogs,
-                            'overhead': labor.overhead,
-                            'cost': labor.cost,
-                            'profit': labor.profit,
-                            'sell': labor.sell,
+                            "name": labor.product_id.name,
+                            "quantity": labor.quantity,
+                            "cogs": labor.cogs,
+                            "overhead": labor.overhead,
+                            "cost": labor.cost,
+                            "profit": labor.profit,
+                            "sell": labor.sell,
                         }
                     else:
-                        items[labor.product_id.id]['quantity'] \
-                            += labor.quantity
-                        items[labor.product_id.id]['cogs'] \
-                            += labor.cogs
-                        items[labor.product_id.id]['overhead'] \
-                            += labor.overhead
-                        items[labor.product_id.id]['cost'] \
-                            += labor.cost
-                        items[labor.product_id.id]['profit'] \
-                            += labor.profit
-                        items[labor.product_id.id]['sell'] \
-                            += labor.sell
+                        items[labor.product_id.id][
+                            "quantity"
+                        ] += labor.quantity
+                        items[labor.product_id.id]["cogs"] += labor.cogs
+                        items[labor.product_id.id][
+                            "overhead"
+                        ] += labor.overhead
+                        items[labor.product_id.id]["cost"] += labor.cost
+                        items[labor.product_id.id]["profit"] += labor.profit
+                        items[labor.product_id.id]["sell"] += labor.sell
 
             for labor in bid.other_labor:
                 if labor.product_id.id not in items:
                     items[labor.product_id.id] = {
-                        'name': labor.product_id.name,
-                        'quantity': labor.quantity,
-                        'cogs': labor.cogs,
-                        'overhead': labor.overhead,
-                        'cost': labor.cost,
-                        'profit': labor.profit,
-                        'sell': labor.sell,
+                        "name": labor.product_id.name,
+                        "quantity": labor.quantity,
+                        "cogs": labor.cogs,
+                        "overhead": labor.overhead,
+                        "cost": labor.cost,
+                        "profit": labor.profit,
+                        "sell": labor.sell,
                     }
                 else:
-                    items[labor.product_id.id]['quantity'] \
-                        += labor.quantity
-                    items[labor.product_id.id]['cogs'] \
-                        += labor.cogs
-                    items[labor.product_id.id]['overhead'] \
-                        += labor.overhead
-                    items[labor.product_id.id]['cost'] \
-                        += labor.cost
-                    items[labor.product_id.id]['profit'] \
-                        += labor.profit
-                    items[labor.product_id.id]['sell'] \
-                        += labor.sell
+                    items[labor.product_id.id]["quantity"] += labor.quantity
+                    items[labor.product_id.id]["cogs"] += labor.cogs
+                    items[labor.product_id.id]["overhead"] += labor.overhead
+                    items[labor.product_id.id]["cost"] += labor.cost
+                    items[labor.product_id.id]["profit"] += labor.profit
+                    items[labor.product_id.id]["sell"] += labor.sell
             for val in items.values():
-                val['bid_id'] = bid.id
+                val["bid_id"] = bid.id
                 line_id = costs_line_obj.create(val)
                 vals.append(line_id.id)
             bid.totals_non_material = vals
 
     @api.multi
-    def _get_wbs_totals_labor(self):
+    def _compute_wbs_totals_labor(self):
         bid_ids = []
-        costs_line_obj = self.env['project.bid.total.labor']
+        costs_line_obj = self.env["project.bid.total.labor"]
         for bid in self:
             if bid.id and type(bid.id) == int:
                 bid_ids = bid.get_child_bids()
@@ -154,63 +149,61 @@ class ProjectBid(models.Model):
                     for labor in component.labor:
                         if labor.product_id.id not in items:
                             items[labor.product_id.id] = {
-                                'name': labor.product_id.name,
-                                'quantity': labor.quantity,
-                                'cogs': labor.cogs,
-                                'overhead': labor.overhead,
-                                'cost': labor.cost,
-                                'profit': labor.profit,
-                                'sell': labor.sell,
+                                "name": labor.product_id.name,
+                                "quantity": labor.quantity,
+                                "cogs": labor.cogs,
+                                "overhead": labor.overhead,
+                                "cost": labor.cost,
+                                "profit": labor.profit,
+                                "sell": labor.sell,
                             }
                         else:
-                            items[labor.product_id.id]['quantity'] \
-                                += labor.quantity
-                            items[labor.product_id.id]['cogs'] \
-                                += labor.cogs
-                            items[labor.product_id.id]['overhead'] \
-                                += labor.overhead
-                            items[labor.product_id.id]['cost'] \
-                                += labor.cost
-                            items[labor.product_id.id]['profit'] \
-                                += labor.profit
-                            items[labor.product_id.id]['sell'] \
-                                += labor.sell
+                            items[labor.product_id.id][
+                                "quantity"
+                            ] += labor.quantity
+                            items[labor.product_id.id]["cogs"] += labor.cogs
+                            items[labor.product_id.id][
+                                "overhead"
+                            ] += labor.overhead
+                            items[labor.product_id.id]["cost"] += labor.cost
+                            items[labor.product_id.id][
+                                "profit"
+                            ] += labor.profit
+                            items[labor.product_id.id]["sell"] += labor.sell
 
                 for labor in bid_2.other_labor:
                     if labor.product_id.id not in items:
                         items[labor.product_id.id] = {
-                            'name': labor.product_id.name,
-                            'quantity': labor.quantity,
-                            'cogs': labor.cogs,
-                            'overhead': labor.overhead,
-                            'cost': labor.cost,
-                            'profit': labor.profit,
-                            'sell': labor.sell,
+                            "name": labor.product_id.name,
+                            "quantity": labor.quantity,
+                            "cogs": labor.cogs,
+                            "overhead": labor.overhead,
+                            "cost": labor.cost,
+                            "profit": labor.profit,
+                            "sell": labor.sell,
                         }
                     else:
-                        items[labor.product_id.id]['quantity'] \
-                            += labor.quantity
-                        items[labor.product_id.id]['cogs'] \
-                            += labor.cogs
-                        items[labor.product_id.id]['overhead'] \
-                            += labor.overhead
-                        items[labor.product_id.id]['cost'] \
-                            += labor.cost
-                        items[labor.product_id.id]['profit'] \
-                            += labor.profit
-                        items[labor.product_id.id]['sell'] \
-                            += labor.sell
+                        items[labor.product_id.id][
+                            "quantity"
+                        ] += labor.quantity
+                        items[labor.product_id.id]["cogs"] += labor.cogs
+                        items[labor.product_id.id][
+                            "overhead"
+                        ] += labor.overhead
+                        items[labor.product_id.id]["cost"] += labor.cost
+                        items[labor.product_id.id]["profit"] += labor.profit
+                        items[labor.product_id.id]["sell"] += labor.sell
             for val in items.values():
-                val['bid_id'] = bid.id
+                val["bid_id"] = bid.id
                 line_id = costs_line_obj.create(val)
                 vals.append(line_id.id)
             bid.totals_non_material = vals
 
     @api.multi
-    def _get_totals_all(self):
+    def _compute_totals_all(self):
         if self.ids:
             for bid in self:
-                vals=[]
+                vals = []
                 items = {}
                 material_cogs = 0.0
                 material_overhead = 0.0
@@ -242,62 +235,61 @@ class ProjectBid(models.Model):
                 for expense in bid.other_expenses:
                     if expense.product_id.id not in items:
                         items[expense.product_id.id] = {
-                            'name': expense.product_id.name,
-                            'quantity': expense.quantity,
-                            'cogs': expense.cogs,
-                            'overhead': expense.overhead,
-                            'cost': expense.cost,
-                            'profit': expense.profit,
-                            'sell': expense.sell
+                            "name": expense.product_id.name,
+                            "cogs": expense.cogs,
+                            "overhead": expense.overhead,
+                            "cost": expense.cost,
+                            "profit": expense.profit,
+                            "sell": expense.sell,
                         }
                     else:
-                        items[expense.product_id.id]['quantity'] \
-                            += expense.quantity
-                        items[expense.product_id.id]['cogs'] \
-                            += expense.cogs
-                        items[expense.product_id.id]['overhead'] \
-                            += expense.overhead
-                        items[expense.product_id.id]['cost'] \
-                            += expense.cost
-                        items[expense.product_id.id]['profit'] \
-                            += expense.profit
-                        items[expense.product_id.id]['sell'] \
-                            += expense.sell
+                        items[expense.product_id.id][
+                            "quantity"
+                        ] += expense.quantity
+                        items[expense.product_id.id]["cogs"] += expense.cogs
+                        items[expense.product_id.id][
+                            "overhead"
+                        ] += expense.overhead
+                        items[expense.product_id.id]["cost"] += expense.cost
+                        items[expense.product_id.id][
+                            "profit"
+                        ] += expense.profit
+                        items[expense.product_id.id]["sell"] += expense.sell
 
                 val = {
-                    'bid_id': bid.id,
-                    'name': 'Total material',
-                    'cogs': material_cogs,
-                    'overhead': material_overhead,
-                    'cost': material_cost,
-                    'profit': material_profit,
-                    'sell': material_sell,
+                    "bid_id": bid.id,
+                    "name": "Total material",
+                    "cogs": material_cogs,
+                    "overhead": material_overhead,
+                    "cost": material_cost,
+                    "profit": material_profit,
+                    "sell": material_sell,
                 }
                 line_id = costs_line_obj.create(val)
                 vals.append(line_id.id)
 
                 val = {
-                    'bid_id': bid.id,
-                    'name': 'Total labor',
-                    'cogs': labor_cogs,
-                    'overhead': labor_overhead,
-                    'cost': labor_cost,
-                    'profit': labor_profit,
-                    'sell': labor_sell,
-                    }
+                    "bid_id": bid.id,
+                    "name": "Total labor",
+                    "cogs": labor_cogs,
+                    "overhead": labor_overhead,
+                    "cost": labor_cost,
+                    "profit": labor_profit,
+                    "sell": labor_sell,
+                }
                 line_id = costs_line_obj.create(val)
                 vals.append(line_id.id)
-                self.env['project.bid.totals'].create(val)
+                self.env["project.bid.totals"].create(val)
                 for val in items.values():
-                    val['bid_id'] = bid.id
+                    val["bid_id"] = bid.id
                     line_id = costs_line_obj.create(val)
                     vals.append(line_id.id)
 
                 bid.totals_all = vals
 
     @api.multi
-    def _get_wbs_totals_all(self):
-        costs_line_obj = self.env['project.bid.totals']
+    def _compute_wbs_totals_all(self):
+        costs_line_obj = self.env["project.bid.totals"]
         bid_ids = []
         if self.ids:
             for bid in self:
@@ -335,58 +327,64 @@ class ProjectBid(models.Model):
                     for expense in bid_2.other_expenses:
                         if expense.product_id.id not in items:
                             items[expense.product_id.id] = {
-                                'name': expense.product_id.name,
-                                'quantity': expense.quantity,
-                                'cogs': expense.cogs,
-                                'overhead': expense.overhead,
-                                'cost': expense.cost,
-                                'profit': expense.profit,
-                                'sell': expense.sell
+                                "name": expense.product_id.name,
+                                "quantity": expense.quantity,
+                                "cogs": expense.cogs,
+                                "overhead": expense.overhead,
+                                "cost": expense.cost,
+                                "profit": expense.profit,
+                                "sell": expense.sell,
                             }
                         else:
-                            items[expense.product_id.id]['quantity'] \
-                                += expense.quantity
-                            items[expense.product_id.id]['cogs'] \
-                                += expense.cogs
-                            items[expense.product_id.id]['overhead'] \
-                                += expense.overhead
-                            items[expense.product_id.id]['cost'] \
-                                += expense.cost
-                            items[expense.product_id.id]['profit'] \
-                                += expense.profit
-                            items[expense.product_id.id]['sell'] \
-                                += expense.sell
+                            items[expense.product_id.id][
+                                "quantity"
+                            ] += expense.quantity
+                            items[expense.product_id.id][
+                                "cogs"
+                            ] += expense.cogs
+                            items[expense.product_id.id][
+                                "overhead"
+                            ] += expense.overhead
+                            items[expense.product_id.id][
+                                "cost"
+                            ] += expense.cost
+                            items[expense.product_id.id][
+                                "profit"
+                            ] += expense.profit
+                            items[expense.product_id.id][
+                                "sell"
+                            ] += expense.sell
                 val = {
-                    'bid_id': bid.id,
-                    'name': 'Total material',
-                    'cogs': material_cogs,
-                    'overhead': material_overhead,
-                    'cost': material_cost,
-                    'profit': material_profit,
-                    'sell': material_sell,
+                    "bid_id": bid.id,
+                    "name": "Total material",
+                    "cogs": material_cogs,
+                    "overhead": material_overhead,
+                    "cost": material_cost,
+                    "profit": material_profit,
+                    "sell": material_sell,
                 }
                 line_id = costs_line_obj.create(val)
                 vals.append(line_id.id)
                 val = {
-                    'bid_id': bid.id,
-                    'name': 'Total labor',
-                    'cogs': labor_cogs,
-                    'overhead': labor_overhead,
-                    'cost': labor_cost,
-                    'profit': labor_profit,
-                    'sell': labor_sell,
-                    }
+                    "bid_id": bid.id,
+                    "name": "Total labor",
+                    "cogs": labor_cogs,
+                    "overhead": labor_overhead,
+                    "cost": labor_cost,
+                    "profit": labor_profit,
+                    "sell": labor_sell,
+                }
                 line_id = costs_line_obj.create(val)
                 vals.append(line_id.id)
                 for val in items.values():
-                    val['bid_id'] = bid.id
+                    val["bid_id"] = bid.id
                     line_id = costs_line_obj.create(val)
                     vals.append(line_id.id)
 
                 bid.wbs_totals_all = vals
 
     @api.multi
-    def _get_totals(self):
+    def _compute_totals(self):
         for bid in self:
             total_cogs = 0.0
             total_overhead = 0.0
@@ -403,14 +401,14 @@ class ProjectBid(models.Model):
             # Gross profit and gross margin
             total_gp = total_sell - total_cogs
             try:
-                total_gm_percent = round((total_gp/total_sell)*100, 2)
+                total_gm_percent = round((total_gp / total_sell) * 100, 2)
             except ZeroDivisionError:
                 total_gm_percent = 0.0
 
             # Profit Margin
             total_npm = total_sell - total_cost
             try:
-                total_npm_percent = round((total_npm/total_sell)*100, 2)
+                total_npm_percent = round((total_npm / total_sell) * 100, 2)
             except ZeroDivisionError:
                 total_npm_percent = 0.0
 
@@ -423,7 +421,7 @@ class ProjectBid(models.Model):
             bid.total_npm_percent = total_npm_percent
 
     @api.multi
-    def _get_wbs_totals(self):
+    def _compute_wbs_totals(self):
         bid_ids = []
         for bid in self:
             if bid.id and type(bid.id) == int:
@@ -444,41 +442,42 @@ class ProjectBid(models.Model):
             # Gross profit and gross margin
             total_gp = total_sell - total_cogs
             try:
-                total_gm_percent = round((total_gp/total_sell)*100, 2)
+                total_gm_percent = round((total_gp / total_sell) * 100, 2)
             except ZeroDivisionError:
                 total_gm_percent = 0.0
 
             # Profit Margin
             total_npm = total_sell - total_cost
             try:
-                total_npm_percent = round((total_npm/total_sell)*100, 2)
+                total_npm_percent = round((total_npm / total_sell) * 100, 2)
             except ZeroDivisionError:
                 total_npm_percent = 0.0
 
             bid.wbs_total_income = total_sell
             bid.wbs_total_cogs = total_cogs
-            bid.wbs_total_gm_percent= total_gm_percent
-            bid.wbs_total_gp= total_gp
-            bid.wbs_total_overhead= total_overhead
-            bid.wbs_total_npm= total_npm
-            bid.wbs_total_npm_percent= total_npm_percent
+            bid.wbs_total_gm_percent = total_gm_percent
+            bid.wbs_total_gp = total_gp
+            bid.wbs_total_overhead = total_overhead
+            bid.wbs_total_npm = total_npm
+            bid.wbs_total_npm_percent = total_npm_percent
 
     @api.multi
     def _get_gm_percent(self):
-        res = {}
         for bid in self:
             gm_percent = 0.0
             if bid.total_cost:
                 try:
-                    gm_percent = \
-                        round(((bid.total_sell - bid.total_cost)
-                               / bid.total_cost)*100, 2)
+                    gm_percent = round(
+                        ((bid.total_sell - bid.total_cost) / bid.total_cost)
+                        * 100,
+                        2,
+                    )
                 except ZeroDivisionError:
                     gm_percent = 0.0
             bid.gm_percent = gm_percent
 
     @api.multi
-    def _complete_bid_hierarchy_code_calc(self):
+    def _compute_complete_code(self):
         res = []
         for bid in self:
             data = []
@@ -487,11 +486,11 @@ class ProjectBid(models.Model):
                 if b.code:
                     data.insert(0, b.code)
                 else:
-                    data.insert(0, '')
+                    data.insert(0, "")
 
                 b = b.parent_id
-            data = ' / '.join(data)
-            data = '[' + data + '] '
+            data = " / ".join(data)
+            data = "[" + data + "] "
 
             res.append((bid.id, data))
             bid.complete_code = data
@@ -500,161 +499,228 @@ class ProjectBid(models.Model):
     def _get_current_user(self):
         return self.env.uid
 
-    _track = {
-        'state': {
-            'project_bid.mt_bid_confirmed':
-                lambda self, cr, uid, obj, ctx=None: obj['state'] == 'confirm',
-            'project_bid.mt_bid_approved':
-                lambda self, cr, uid, obj, ctx=None: obj['state'] == 'approve',
-            'project_bid.mt_bid_draft':
-                lambda self, cr, uid, obj, ctx=None: obj['state'] == 'draft',
-            'project_bid.mt_bid_cancel':
-                lambda self, cr, uid, obj, ctx=None: obj['state'] == 'cancel',
-        },
-    }
-
     state = fields.Selection(
-            [('draft', 'Draft'),
-             ('confirm', 'Awaiting approval'),
-             ('approve', 'Approved'),
-             ('cancel', 'Cancelled')], 'Status',
-            index=True, required=True, readonly=True,
-            default = 'draft',
-            help=' * The \'Draft\' status is used when a user is encoding '
-                 'a new bid. '
-                 '\n* The \'Confirmed\' status is used to confirm the '
-                 'bid by the user.'
-                 '\n* The \'Approved\' status is used to approve the '
-                 'bid by an authorized user.'
-                 '\n* The \'Cancelled\' status is used to cancel '
-                 'the bid.')
-    bid_template_id = fields.Many2one('project.bid.template',
-                                       'Bid Template', required=True,
-                                       ondelete='cascade', index=True,
-                                       readonly=True,
-                                       states={
-                                           'draft': [('readonly', False)]
-                                       })
-    parent_id = fields.Many2one('project.bid', 'Parent Bid',
-                                     required=False, ondelete='set null',
-                                     readonly=True,
-                                     states={
-                                         'draft': [('readonly', False)]
-                                     })
-    child_ids = fields.One2many('project.bid', 'parent_id',
-                                'Child bids')
-    partner_id = fields.Many2one('res.partner',
-                                      'Customer', required=True, readonly=True,
-                                      states={
-                                          'draft': [('readonly', False)]
-                                      })
-    code = fields.Char('Reference', index=True, required=True)
+        [
+            ("draft", "Draft"),
+            ("confirm", "Awaiting approval"),
+            ("approve", "Approved"),
+            ("cancel", "Cancelled"),
+        ],
+        "Status",
+        index=True,
+        required=True,
+        readonly=True,
+        default="draft",
+        help=" * The 'Draft' status is used when a user is encoding "
+        "a new bid. "
+        "\n* The 'Confirmed' status is used to confirm the "
+        "bid by the user."
+        "\n* The 'Approved' status is used to approve the "
+        "bid by an authorized user."
+        "\n* The 'Cancelled' status is used to cancel "
+        "the bid.",
+    )
+    bid_template_id = fields.Many2one(
+        "project.bid.template",
+        "Bid Template",
+        required=True,
+        ondelete="cascade",
+        index=True,
+        readonly=True,
+        states={"draft": [("readonly", False)]},
+    )
+    parent_id = fields.Many2one(
+        "project.bid",
+        "Parent Bid",
+        required=False,
+        ondelete="set null",
+        readonly=True,
+        states={"draft": [("readonly", False)]},
+    )
+    child_ids = fields.One2many("project.bid", "parent_id", "Child bids")
+    partner_id = fields.Many2one(
+        "res.partner",
+        "Customer",
+        required=True,
+        readonly=True,
+        states={"draft": [("readonly", False)]},
+    )
+    code = fields.Char("Reference", index=True, required=True)
     complete_code = fields.Char(
-            compute= '_complete_bid_hierarchy_code_calc',
-            string='Complete Reference',
-            help='Describes the full path of this '
-                 'bid hierarchy.',
-            store=True)
-    name = fields.Char('Name', size=256, required=True,
-                            readonly=True,
-                            states={'draft': [('readonly', False)]})
-    created_on = fields.Date('Creation date',
-                             default = fields.Date.context_today)
-    created_by = fields.Many2one('res.users', 'Created by',
-                                      required=True,
-                                      readonly=True,
-                                      default = _get_current_user,
-                                      states={
-                                          'draft': [('readonly', False)]
-                                      })
-    approved_by = fields.Many2one('res.users', 'Approved by',
-                                       required=False,
-                                       readonly=True)
-    approved_on = fields.Date('Approval date', readonly=True)
-    due_by = fields.Date('Due by', required=False, readonly=True,
-                              states={
-                                  'draft': [('readonly', False)]
-                              })
-    components = fields.One2many('project.bid.component', 'bid_id',
-                                      'Bid Lines',
-                                      readonly=True,
-                                      states={'draft': [('readonly', False)]})
-    notes = fields.Text('Notes', readonly=True,
-                             states={'draft': [('readonly', False)]})
+        compute="_compute_complete_code",
+        string="Complete Reference",
+        help="Describes the full path of this " "bid hierarchy.",
+        store=True,
+    )
+    name = fields.Char(
+        "Name",
+        size=256,
+        required=True,
+        readonly=True,
+        states={"draft": [("readonly", False)]},
+    )
+    created_on = fields.Date(
+        "Creation date", default=fields.Date.context_today
+    )
+    created_by = fields.Many2one(
+        "res.users",
+        "Planned By",
+        required=True,
+        readonly=True,
+        default=_get_current_user,
+        states={"draft": [("readonly", False)]},
+    )
+    approved_by = fields.Many2one(
+        "res.users", "Approved by", required=False, readonly=True
+    )
+    approved_on = fields.Date("Approval date", readonly=True)
+    due_by = fields.Date(
+        "Due by",
+        required=False,
+        readonly=True,
+        states={"draft": [("readonly", False)]},
+    )
+    components = fields.One2many(
+        "project.bid.component",
+        "bid_id",
+        "Bid Lines",
+        readonly=True,
+        states={"draft": [("readonly", False)]},
+    )
+    notes = fields.Text(
+        "Notes", readonly=True, states={"draft": [("readonly", False)]}
+    )
     totals_non_material = fields.One2many(
-            compute='_get_totals_labor',
-            comodel_name='project.bid.total.labor',
-            string='Non material costs')
+        compute="_compute_totals_labor",
+        comodel_name="project.bid.total.labor",
+        string="Non material costs",
+    )
     totals_all = fields.One2many(
-            compute='_get_totals_all', string='Totals',
-            comodel_name='project.bid.totals')
+        compute="_compute_totals_all",
+        string="Totals",
+        comodel_name="project.bid.totals",
+    )
 
     wbs_totals_non_material = fields.One2many(
-            compute='_get_wbs_totals_labor',
-            comodel_name='project.bid.total.labor',
-            string='WBS Non material costs')
+        compute="_compute_wbs_totals_labor",
+        comodel_name="project.bid.total.labor",
+        string="WBS Non material costs",
+    )
     wbs_totals_all = fields.One2many(
-            comodel_name='project.bid.totals',
-            compute='_get_wbs_totals_all',
-            string='WBS Totals')
-    other_labor = fields.One2many('project.bid.other.labor', 'bid_id',
-                                'Other labor', readonly=True,
-                                states={'draft': [('readonly',
-                                False)]})
-    other_expenses = fields.One2many('project.bid.other.expenses',
-                                    'bid_id',
-                                    'Other expenses', readonly=True,
-                                    states={'draft': [('readonly',
-                                    False)]})
-    total_income = fields.Float(compute='_get_totals',
-                                        multi='totals', string='Revenue')
-    total_cogs = fields.Float(compute='_get_totals',
-                                      multi='totals', string='Cost of Sales')
-    total_gm_percent = fields.Float(compute='_get_totals',
-                                            multi='totals',
-                                            string='Gross Margin (%)')
-    total_gp =  fields.Float(compute='_get_totals',
-                                    multi='totals', string='Gross Profit')
-    total_overhead = fields.Float(compute='_get_totals',
-                                          multi='totals',
-                                          string='Total Overhead')
-    total_npm = fields.Float(compute='_get_totals',
-                                     multi='totals',
-                                     string='Net Profit Margin')
-    total_npm_percent = fields.Float(compute='_get_totals',
-                                             multi='totals',
-                                             string='Net Profit Margin (%)')
-    wbs_total_income = fields.Float(compute='_get_wbs_totals',
-                                            multi='wbs_totals',
-                                            string='WBS Total Revenue')
-    wbs_total_cogs = fields.Float(compute='_get_totals',
-                                    multi='wbs_totals',
-                                    string='WBS Cost of sales')
-    wbs_total_gm_percent= fields.Float(compute='_get_wbs_totals',
-                                    multi='wbs_totals',
-                                    string='WBS Gross Margin (%)')
-    wbs_total_gp= fields.Float(compute='_get_wbs_totals',
-                                    multi='wbs_totals',
-                                    string='WBS Gross Profit')
-    wbs_total_overhead= fields.Float(compute='_get_wbs_totals',
-                                    multi='wbs_totals',
-                                    string='WBS Total Overhead')
-    wbs_total_npm= fields.Float(compute='_get_wbs_totals',
-                                    multi='wbs_totals',
-                                    string='WBS Net profit Margin')
-    wbs_total_npm_percent= fields.Float(compute='_get_wbs_totals',
-                                    multi='wbs_totals',
-                                    string='WBS Net Profit Margin %')
+        comodel_name="project.bid.totals",
+        compute="_compute_wbs_totals_all",
+        string="WBS Totals",
+    )
+    other_labor = fields.One2many(
+        "project.bid.other.labor",
+        "bid_id",
+        "Other labor",
+        readonly=True,
+        states={"draft": [("readonly", False)]},
+    )
+    other_expenses = fields.One2many(
+        "project.bid.other.expenses",
+        "bid_id",
+        "Other expenses",
+        readonly=True,
+        states={"draft": [("readonly", False)]},
+    )
+    total_income = fields.Float(
+        compute="_compute_totals",
+        multi="totals",
+        string="Revenue",
+        digits=dp.get_precision("Account"),
+    )
+    total_cogs = fields.Float(
+        compute="_compute_totals",
+        multi="totals",
+        digits=dp.get_precision("Account"),
+        string="Cost of Sales",
+    )
+    total_gm_percent = fields.Float(
+        compute="_compute_totals",
+        multi="totals",
+        digits=dp.get_precision("Account"),
+        string="Gross Margin (%)",
+    )
+    total_gp = fields.Float(
+        compute="_compute_totals",
+        multi="totals",
+        digits=dp.get_precision("Account"),
+        string="Gross Profit",
+    )
+    total_overhead = fields.Float(
+        compute="_compute_totals",
+        multi="totals",
+        digits=dp.get_precision("Account"),
+        string="Total Overhead",
+    )
+    total_npm = fields.Float(
+        compute="_compute_totals",
+        multi="totals",
+        digits=dp.get_precision("Account"),
+        string="Net Profit Margin",
+    )
+    total_npm_percent = fields.Float(
+        compute="_compute_totals",
+        multi="totals",
+        digits=dp.get_precision("Account"),
+        string="Net Profit Margin (%)",
+    )
+    wbs_total_income = fields.Float(
+        compute="_compute_wbs_totals",
+        multi="wbs_totals",
+        digits=dp.get_precision("Account"),
+        string="WBS Total Revenue",
+    )
+    wbs_total_cogs = fields.Float(
+        compute="_compute_totals",
+        multi="wbs_totals",
+        digits=dp.get_precision("Account"),
+        string="WBS Cost of sales",
+    )
+    wbs_total_gm_percent = fields.Float(
+        compute="_compute_wbs_totals",
+        multi="wbs_totals",
+        digits=dp.get_precision("Account"),
+        string="WBS Gross Margin (%)",
+    )
+    wbs_total_gp = fields.Float(
+        compute="_compute_wbs_totals",
+        multi="wbs_totals",
+        digits=dp.get_precision("Account"),
+        string="WBS Gross Profit",
+    )
+    wbs_total_overhead = fields.Float(
+        compute="_compute_wbs_totals",
+        multi="wbs_totals",
+        digits=dp.get_precision("Account"),
+        string="WBS Total Overhead",
+    )
+    wbs_total_npm = fields.Float(
+        compute="_compute_wbs_totals",
+        multi="wbs_totals",
+        digits=dp.get_precision("Account"),
+        string="WBS Net profit Margin",
+    )
+    wbs_total_npm_percent = fields.Float(
+        compute="_compute_wbs_totals",
+        multi="wbs_totals",
+        digits=dp.get_precision("Account"),
+        string="WBS Net Profit Margin %",
+    )
     overhead_rate = fields.Float(
-            'Default Overhead %', digits=dp.get_precision('Account'))
+        "Default Overhead %", digits=dp.get_precision("Account")
+    )
     profit_rate = fields.Float(
-            'Default Profit (%) over COGS', digits=dp.get_precision(
-                'Account'),
-            help="Profit % over COGS")
+        "Default Profit (%) over COGS",
+        digits=dp.get_precision("Account"),
+        help="Profit % over COGS",
+    )
 
-    _order = 'complete_code'
+    _order = "complete_code"
 
-    @api.onchange('bid_template_id')
+    @api.onchange("bid_template_id")
     def on_change_bid_template_id(self):
         if self.bid_template_id:
             self.overhead_rate = self.bid_template_id.overhead_rate
@@ -665,25 +731,24 @@ class ProjectBid(models.Model):
         self.ensure_one()
         if default is None:
             default = {}
-        default.update({
-            'state': 'draft',
-            'name': ("%s (copy)") % (self.name or ''),
-        })
+        default.update(
+            {"state": "draft", "name": ("%s (copy)") % (self.name or "")}
+        )
         return super(ProjectBid, self).copy(default)
 
     @api.multi
     def action_button_confirm(self):
         self.ensure_one()
-        self.write({'state': 'confirm'})
+        self.write({"state": "confirm"})
         return True
 
     @api.multi
     def action_button_approve(self):
         self.ensure_one()
         vals = {
-            'state': 'approve',
-            'approved_on': time.strftime('%Y-%m-%d'),
-            'approved_by': self.env.uid,
+            "state": "approve",
+            "approved_on": time.strftime("%Y-%m-%d"),
+            "approved_by": self.env.uid,
         }
         self.write(vals)
         return True
@@ -691,18 +756,14 @@ class ProjectBid(models.Model):
     @api.multi
     def action_button_draft(self):
         self.ensure_one()
-        vals = {
-            'state': 'draft',
-            'approved_on': False,
-            'approved_by': False,
-        }
+        vals = {"state": "draft", "approved_on": False, "approved_by": False}
         self.write(vals)
         return True
 
     @api.multi
     def action_button_cancel(self):
         self.ensure_one()
-        self.write({'state': 'cancel'})
+        self.write({"state": "cancel"})
         return True
 
     @api.multi
@@ -717,9 +778,9 @@ class ProjectBid(models.Model):
                 if bid.code:
                     data.insert(0, bid.code)
                 else:
-                    data.insert(0, '')
+                    data.insert(0, "")
                 bid = bid.parent_id
-            data = ' / '.join(data)
+            data = " / ".join(data)
             res.append((item.id, data))
         return res
 
@@ -733,19 +794,19 @@ class ProjectBid(models.Model):
                 if bid.name:
                     data.insert(0, bid.name)
                 else:
-                    data.insert(0, '')
+                    data.insert(0, "")
                 bid = bid.parent_id
-            data = ' / '.join(data)
+            data = " / ".join(data)
             res2 = item.code_get()
             if res2:
-                data = '[' + res2[0][1] + '] ' + data
+                data = "[" + res2[0][1] + "] " + data
 
             res.append((item.id, data))
         return res
 
 
 class ProjectBidComponent(models.Model):
-    _name = 'project.bid.component'
+    _name = "project.bid.component"
     _description = "Project Bid Component"
 
     @api.multi
@@ -757,21 +818,20 @@ class ProjectBidComponent(models.Model):
             if bid_component.name:
                 data.insert(0, bid_component.name)
             else:
-                data.insert(0, '')
+                data.insert(0, "")
 
             data.insert(0, bid_component.bid_id.name)
 
-            data = ' / '.join(data)
+            data = " / ".join(data)
             res2 = bid_component.bid_id.code_get()
             if res2:
-                data = '[' + res2[0][1] + '] ' + data
+                data = "[" + res2[0][1] + "] " + data
 
             res.append((item.id, data))
         return res
 
-
     @api.multi
-    def _get_totals(self):
+    def _compute_totals(self):
         for record in self:
             labor_cogs = 0.0
             labor_overhead = 0.0
@@ -829,87 +889,152 @@ class ProjectBidComponent(models.Model):
     @api.model
     def _default_labor(self):
         res = []
-        bid_template_obj = self.env['project.bid.template']
-        bid_template_id = self.env.context.get('bid_template_id')
+        bid_template_obj = self.env["project.bid.template"]
+        bid_template_id = self.env.context.get("bid_template_id")
         if bid_template_id:
             bid_template = bid_template_obj.browse([bid_template_id])
             for product in bid_template.default_component_labor:
-                val = {
-                    'product_id': product.id,
-                    'quantity': 0.0
-                }
+                val = {"product_id": product.id, "quantity": 0.0}
                 res.append((0, 0, val))
             bid_template.labor = res
         return res
 
     @api.model
     def _default_profit_rate(self):
-        return self.env.context.get('profit_rate') or 0.0
+        return self.env.context.get("profit_rate") or 0.0
 
     @api.model
     def _default_overhead_rate(self):
-        return self.env.context.get('overhead_rate') or 0.0
+        return self.env.context.get("overhead_rate") or 0.0
 
     @api.model
     def _default_bid_id(self):
-        return self.env.context.get('bid_id') or 0.0
+        return self.env.context.get("bid_id") or 0.0
 
-    bid_id = fields.Many2one('project.bid', 'Project Bid',
-                              index=True, required=True,
-                              ondelete='cascade',
-                             default=_default_bid_id)
-    bid_template_id = fields.Many2one(related='bid_id.bid_template_id',
-                                      string="Bid Template",
-                                      readonly=True)
+    bid_id = fields.Many2one(
+        "project.bid",
+        "Project Bid",
+        index=True,
+        required=True,
+        ondelete="cascade",
+        default=_default_bid_id,
+    )
+    bid_template_id = fields.Many2one(
+        related="bid_id.bid_template_id", string="Bid Template", readonly=True
+    )
     labor = fields.One2many(
-        'project.bid.component.labor', 'bid_component_id', 'Labor',
-        default=_default_labor)
+        "project.bid.component.labor",
+        "bid_component_id",
+        "Labor",
+        default=_default_labor,
+    )
     bid_component_template_id = fields.Many2one(
-        'project.bid.component', 'Project Bid Component Template',
-        required=False, ondelete='set null')
+        "project.bid.component",
+        "Project Bid Component Template",
+        required=False,
+        ondelete="set null",
+    )
     material_ids = fields.One2many(
-        'project.bid.component.material', 'bid_component_id', 'Materials')
-    name = fields.Char('Description', size=256, required=True)
-    quantity = fields.Float('Quantity', compute="_get_totals",multi='totals')
+        "project.bid.component.material", "bid_component_id", "Materials"
+    )
+    name = fields.Char("Description", size=256, required=True)
+    quantity = fields.Float(
+        "Quantity",
+        compute="_compute_totals",
+        multi="totals",
+        digits=dp.get_precision("Product Unit of Measure"),
+    )
     overhead_rate = fields.Float(
-        'Overhead %', digits=dp.get_precision('Account'),
-        default =_default_overhead_rate)
+        "Overhead %",
+        digits=dp.get_precision("Account"),
+        default=_default_overhead_rate,
+    )
     profit_rate = fields.Float(
-        'Profit (%) over COGS', digits=dp.get_precision('Account'),
+        "Profit (%) over COGS",
+        digits=dp.get_precision("Account"),
         help="Profit % over COGS",
-        default = _default_profit_rate)
+        default=_default_profit_rate,
+    )
     material_cogs = fields.Float(
-        compute=_get_totals, string='Material COGS')
+        compute=_compute_totals,
+        string="Material COGS",
+        digits=dp.get_precision("Account"),
+    )
     material_overhead = fields.Float(
-        compute='_get_totals', string='Material overhead')
+        compute="_compute_totals",
+        string="Material overhead",
+        digits=dp.get_precision("Account"),
+    )
     material_cost = fields.Float(
-        compute='_get_totals', string='Material cost')
+        compute="_compute_totals",
+        string="Material cost",
+        digits=dp.get_precision("Account"),
+    )
     material_profit = fields.Float(
-        compute='_get_totals', string='Material profit')
+        compute="_compute_totals",
+        string="Material profit",
+        digits=dp.get_precision("Account"),
+    )
     material_sell = fields.Float(
-        compute='_get_totals', string='Material sell')
+        compute="_compute_totals",
+        string="Material sell",
+        digits=dp.get_precision("Account"),
+    )
     labor_cogs = fields.Float(
-        compute='_get_totals', string='Labor COGS')
+        compute="_compute_totals",
+        string="Labor COGS",
+        digits=dp.get_precision("Account"),
+    )
     labor_overhead = fields.Float(
-        compute='_get_totals', string='Labor overhead')
+        compute="_compute_totals",
+        string="Labor overhead",
+        digits=dp.get_precision("Account"),
+    )
     labor_cost = fields.Float(
-        compute='_get_totals', string='Labor cost')
+        compute="_compute_totals",
+        string="Labor cost",
+        digits=dp.get_precision("Account"),
+    )
     labor_profit = fields.Float(
-        compute='_get_totals', string='Labor profit')
+        compute="_compute_totals",
+        string="Labor profit",
+        digits=dp.get_precision("Account"),
+    )
     labor_sell = fields.Float(
-        compute='_get_totals', string='Labor profit')
+        compute="_compute_totals",
+        string="Labor sell",
+        digits=dp.get_precision("Account"),
+    )
     total_cogs = fields.Float(
-        compute='_get_totals', string='Total COGS')
+        compute="_compute_totals",
+        string="Total COGS",
+        digits=dp.get_precision("Account"),
+    )
     gross_profit = fields.Float(
-        compute='_get_totals', string='Gross profit')
+        compute="_compute_totals",
+        string="Gross profit",
+        digits=dp.get_precision("Account"),
+    )
     total_overhead = fields.Float(
-        compute='_get_totals', string='Total overhead')
+        compute="_compute_totals",
+        string="Total overhead",
+        digits=dp.get_precision("Account"),
+    )
     total_cost = fields.Float(
-        compute='_get_totals', string='Total cost')
+        compute="_compute_totals",
+        string="Total cost",
+        digits=dp.get_precision("Account"),
+    )
     total_profit = fields.Float(
-        compute='_get_totals', string='Net profit')
+        compute="_compute_totals",
+        string="Net profit",
+        digits=dp.get_precision("Account"),
+    )
     total_sell = fields.Float(
-        compute='_get_totals', string='Revenue')
+        compute="_compute_totals",
+        string="Revenue",
+        digits=dp.get_precision("Account"),
+    )
 
     @api.multi
     def _check_overhead(self):
@@ -918,10 +1043,11 @@ class ProjectBidComponent(models.Model):
                 return False
         return True
 
-    _constraints = [(_check_overhead, 'Error ! The overhead % must be > 0. ',
-                     ['overhead'])]
+    _constraints = [
+        (_check_overhead, "Error ! The overhead % must be > 0. ", ["overhead"])
+    ]
 
-    @api.onchange('bid_component_template_id')
+    @api.onchange("bid_component_template_id")
     def on_change_bid_component_template_id(self):
         if self.bid_component_template_id:
             bid_component_template = self.bid_component_template_id
@@ -934,19 +1060,19 @@ class ProjectBidComponent(models.Model):
 
             for material in bid_component_template.material_ids:
                 materialdicc = {
-                    'bid_component_id': self.id if self.material_ids else None,
-                    'name': material.name,
-                    'quantity': material.quantity,
-                    'product_id': material.product_id.id,
-                    'default_code': material.default_code,
-                    'uom_id': material.uom_id.id,
-                    'bid_id': material.bid_id.id,
-                    'unit_cost': material.unit_cost,
-                    'cogs': material.cogs,
-                    'overhead': material.overhead,
-                    'cost': material.cost,
-                    'profit': material.profit,
-                    'sell': material.sell,
+                    "bid_component_id": self.id if self.material_ids else None,
+                    "name": material.name,
+                    "quantity": material.quantity,
+                    "product_id": material.product_id.id,
+                    "default_code": material.default_code,
+                    "uom_id": material.uom_id.id,
+                    "bid_id": material.bid_id.id,
+                    "unit_cost": material.unit_cost,
+                    "cogs": material.cogs,
+                    "overhead": material.overhead,
+                    "cost": material.cost,
+                    "profit": material.profit,
+                    "sell": material.sell,
                 }
                 material_list.append((0, 0, materialdicc))
 
@@ -956,18 +1082,18 @@ class ProjectBidComponent(models.Model):
 
             for labor in bid_component_template.labor:
                 labordicc = {
-                    'bid_component_id': self.id if self.labor else None,
-                    'name': labor.name,
-                    'quantity': labor.quantity,
-                    'product_id': labor.product_id.id,
-                    'uom_id': labor.uom_id.id,
-                    'bid_id': labor.bid_id.id,
-                    'unit_cost': labor.unit_cost,
-                    'cogs': labor.cogs,
-                    'overhead': labor.overhead,
-                    'cost': labor.cost,
-                    'profit': labor.profit,
-                    'sell': labor.sell,
+                    "bid_component_id": self.id if self.labor else None,
+                    "name": labor.name,
+                    "quantity": labor.quantity,
+                    "product_id": labor.product_id.id,
+                    "uom_id": labor.uom_id.id,
+                    "bid_id": labor.bid_id.id,
+                    "unit_cost": labor.unit_cost,
+                    "cogs": labor.cogs,
+                    "overhead": labor.overhead,
+                    "cost": labor.cost,
+                    "profit": labor.profit,
+                    "sell": labor.sell,
                 }
                 labor_list.append((0, 0, labordicc))
 
@@ -978,18 +1104,20 @@ class ProjectBidComponent(models.Model):
 
 
 class ProjectBidComponentMaterial(models.Model):
-    _name = 'project.bid.component.material'
+    _name = "project.bid.component.material"
     _description = "Project Bid Component Material"
 
     @api.multi
-    def _get_totals(self):
+    def _compute_totals(self):
         for record in self:
             total_cogs = record.quantity * record.unit_cost
-            total_overhead = \
-                record.bid_component_id.overhead_rate/100*total_cogs
+            total_overhead = (
+                record.bid_component_id.overhead_rate / 100 * total_cogs
+            )
             total_cost = total_cogs + total_overhead
-            total_gross_profit = \
-                record.bid_component_id.profit_rate/100*total_cogs
+            total_gross_profit = (
+                record.bid_component_id.profit_rate / 100 * total_cogs
+            )
             total_sell = total_cost + total_gross_profit
 
             record.cogs = total_cogs
@@ -998,51 +1126,79 @@ class ProjectBidComponentMaterial(models.Model):
             record.profit = total_gross_profit
             record.sell = total_sell
 
-    @api.onchange('product_id')
+    @api.onchange("product_id")
     def on_change_product_id(self):
         material = self
         material.name = material.product_id.name
         material.default_code = material.product_id.default_code
         material.unit_cost = material.product_id.standard_price
 
-    bid_component_id = fields.Many2one('project.bid.component',
-                                       'Project Bid Component',
-                                       index=True, required=True,
-                                       ondelete='cascade')
+    bid_component_id = fields.Many2one(
+        "project.bid.component",
+        "Project Bid Component",
+        index=True,
+        required=True,
+        ondelete="cascade",
+    )
     bid_id = fields.Many2one(related="bid_component_id.bid_id", readonly=True)
-    product_id = fields.Many2one('product.product','Material product')
-    name = fields.Char(related='product_id.name', string="Description",
-                       required=True)
-    quantity = fields.Float('Quantity')
-    default_code = fields.Char('Part #', help="Material Code")
-    uom_id = fields.Many2one(comodel_name='product.uom',
-                             related='product_id.uom_id', string="UoM")
-    unit_cost = fields.Float('Unit Cost', required=True)
-    cogs = fields.Float(compute = '_get_totals', multi='totals',
-                                string='Total COGS')
-    overhead = fields.Float(compute='_get_totals', multi='totals',
-                        string='Total overhead')
-    cost = fields.Float(compute='_get_totals', multi='totals',
-                        string='Total costs')
-    profit = fields.Float(compute='_get_totals', multi='totals',
-                        string='Net profit')
-    sell = fields.Float(compute='_get_totals', multi='totals',
-                        string='Revene')
+    product_id = fields.Many2one("product.product", "Material product")
+    name = fields.Char(
+        related="product_id.name", string="Description", required=True
+    )
+    quantity = fields.Float(
+        "Quantity", digits=dp.get_precision("Product Unit of Measure")
+    )
+    default_code = fields.Char("Part #", help="Material Code")
+    uom_id = fields.Many2one(
+        comodel_name="uom.uom", related="product_id.uom_id", string="UoM"
+    )
+    unit_cost = fields.Float(
+        "Unit Cost", required=True, digits=dp.get_precision("Account")
+    )
+    cogs = fields.Float(
+        compute="_compute_totals", multi="totals", string="Total COGS"
+    )
+    overhead = fields.Float(
+        compute="_compute_totals",
+        multi="totals",
+        digits=dp.get_precision("Account"),
+        string="Total overhead",
+    )
+    cost = fields.Float(
+        compute="_compute_totals",
+        multi="totals",
+        digits=dp.get_precision("Account"),
+        string="Total costs",
+    )
+    profit = fields.Float(
+        compute="_compute_totals",
+        multi="totals",
+        string="Net profit",
+        digits=dp.get_precision("Account"),
+    )
+    sell = fields.Float(
+        compute="_compute_totals",
+        multi="totals",
+        string="Revenue",
+        digits=dp.get_precision("Account"),
+    )
 
 
 class ProjectBidComponentLabor(models.Model):
-    _name = 'project.bid.component.labor'
+    _name = "project.bid.component.labor"
     _description = "Project Bid Component Labor"
 
     @api.multi
-    def _get_totals(self):
+    def _compute_totals(self):
         for record in self:
             total_cogs = record.quantity * record.unit_cost
-            total_overhead = \
-                record.bid_component_id.overhead_rate/100*total_cogs
+            total_overhead = (
+                record.bid_component_id.overhead_rate / 100 * total_cogs
+            )
             total_cost = total_cogs + total_overhead
-            total_gross_profit = \
-                record.bid_component_id.profit_rate/100*total_cogs
+            total_gross_profit = (
+                record.bid_component_id.profit_rate / 100 * total_cogs
+            )
             total_sell = total_cost + total_gross_profit
 
             record.cogs = total_cogs
@@ -1051,48 +1207,79 @@ class ProjectBidComponentLabor(models.Model):
             record.profit = total_gross_profit
             record.sell = total_sell
 
-    bid_component_id = fields.Many2one('project.bid.component',
-                                        'Project Bid Component',
-                                        index=True, required=True,
-                                        ondelete='cascade')
-    bid_id = fields.Many2one(related='bid_component_id.bid_id',
-                             string="Bid",
-                             readonly=True)
-    product_id = fields.Many2one('product.product',
-                                  'Labor product', required=True)
-    name = fields.Char(related ='product_id.name',
-                            string="Description",
-                            readonly=True)
-    quantity = fields.Float('Quantity')
-    uom_id = fields.Many2one(related='product_id.uom_id', string="UoM",
-                             readonly=True)
-    unit_cost = fields.Float(related='product_id.standard_price',
-                                string='Unit cost',
-                                store=False, readonly=True)
-    cogs = fields.Float(compute= '_get_totals', type='float',
-                            multi='totals',
-                            string='Total labor COGS')
-    overhead = fields.Float(compute='_get_totals',
-                                multi='totals', string='Total overhead')
-    cost = fields.Float(compute='_get_totals',
-                            multi='totals', string='Total costs')
-    profit = fields.Float(compute = '_get_totals',
-                              multi='totals', string='Net profit')
-    sell = fields.Float(compute='_get_totals',
-                            multi='totals', string='Revenue')
+    bid_component_id = fields.Many2one(
+        "project.bid.component",
+        "Project Bid Component",
+        index=True,
+        required=True,
+        ondelete="cascade",
+    )
+    bid_id = fields.Many2one(
+        related="bid_component_id.bid_id", string="Bid", readonly=True
+    )
+    product_id = fields.Many2one(
+        "product.product", "Labor product", required=True
+    )
+    name = fields.Char(
+        related="product_id.name", string="Description", readonly=True
+    )
+    quantity = fields.Float(
+        "Quantity", digits=dp.get_precision("Product Unit of Measure")
+    )
+    uom_id = fields.Many2one(
+        related="product_id.uom_id", string="UoM", readonly=True
+    )
+    unit_cost = fields.Float(
+        related="product_id.standard_price",
+        string="Unit cost",
+        digits=dp.get_precision("Account"),
+        store=False,
+        readonly=True,
+    )
+    cogs = fields.Float(
+        compute="_compute_totals",
+        type="float",
+        multi="totals",
+        digits=dp.get_precision("Account"),
+        string="Total labor COGS",
+    )
+    overhead = fields.Float(
+        compute="_compute_totals",
+        multi="totals",
+        digits=dp.get_precision("Account"),
+        string="Total overhead",
+    )
+    cost = fields.Float(
+        compute="_compute_totals",
+        multi="totals",
+        digits=dp.get_precision("Account"),
+        string="Total costs",
+    )
+    profit = fields.Float(
+        compute="_compute_totals",
+        multi="totals",
+        string="Net profit",
+        digits=dp.get_precision("Account"),
+    )
+    sell = fields.Float(
+        compute="_compute_totals",
+        multi="totals",
+        string="Revenue",
+        digits=dp.get_precision("Account"),
+    )
 
 
 class ProjectBidOtherLabor(models.Model):
-    _name = 'project.bid.other.labor'
+    _name = "project.bid.other.labor"
     _description = "Project Bid Other Labor"
 
     @api.multi
-    def _get_totals(self):
+    def _compute_totals(self):
         for record in self:
             cogs = record.quantity * record.unit_cost
-            overhead = cogs*record.overhead_rate/100
-            cost = cogs+overhead
-            profit = cogs*record.profit_rate/100
+            overhead = cogs * record.overhead_rate / 100
+            cost = cogs + overhead
+            profit = cogs * record.profit_rate / 100
             sell = cost + profit
             gross_profit = sell - cogs
 
@@ -1105,11 +1292,11 @@ class ProjectBidOtherLabor(models.Model):
 
     @api.model
     def _default_profit_rate(self):
-        return self.env.context.get('profit_rate') or 0.0
+        return self.env.context.get("profit_rate") or 0.0
 
     @api.model
     def _default_overhead_rate(self):
-        return self.env.context.get('overhead_rate') or 0.0
+        return self.env.context.get("overhead_rate") or 0.0
 
     @api.multi
     def _check_labor_uom(self):
@@ -1119,59 +1306,102 @@ class ProjectBidOtherLabor(models.Model):
                 return False
         return True
 
-    bid_id = fields.Many2one('project.bid', 'Project Bid',
-                              index=True, required=True,
-                              ondelete='cascade')
-    product_id = fields.Many2one('product.product',
-                                  'Labor product', required=True)
-    name = fields.Char(related= 'product_id.name',
-                       string="Description",
-                       readonly=True)
-    quantity = fields.Float('Quantity')
-    uom_id = fields.Many2one(related='product_id.uom_id', string="UoM",
-                             readonly=True)
-    unit_cost = fields.Float(related ='product_id.standard_price',
-                                string='Unit cost',
-                                store=False, readonly=True)
+    bid_id = fields.Many2one(
+        "project.bid",
+        "Project Bid",
+        index=True,
+        required=True,
+        ondelete="cascade",
+    )
+    product_id = fields.Many2one(
+        "product.product", "Labor product", required=True
+    )
+    name = fields.Char(
+        related="product_id.name", string="Description", readonly=True
+    )
+    quantity = fields.Float(
+        "Quantity", digits=dp.get_precision("Product Unit of Measure")
+    )
+    uom_id = fields.Many2one(
+        related="product_id.uom_id", string="UoM", readonly=True
+    )
+    unit_cost = fields.Float(
+        related="product_id.standard_price",
+        string="Unit cost",
+        digits=dp.get_precision("Account"),
+        store=False,
+        readonly=True,
+    )
     overhead_rate = fields.Float(
-        'Overhead %', digits=dp.get_precision('Account'),
-        default=_default_overhead_rate)
+        "Overhead %",
+        digits=dp.get_precision("Account"),
+        default=_default_overhead_rate,
+    )
     profit_rate = fields.Float(
-        'Profit (%) over COGS', digits=dp.get_precision('Account'),
+        "Profit (%) over COGS",
+        digits=dp.get_precision("Account"),
         help="Profit (%) over COGS",
-        default=_default_profit_rate)
-    cogs = fields.Float(compute= '_get_totals', multi='totals',
-                            string='Total COGS')
-    overhead = fields.Float(compute='_get_totals',
-                                multi='totals',
-                                string='Total overhead')
-    cost = fields.Float(compute='_get_totals', type='float',
-                            multi='totals', string='Total cost')
-    gross_profit = fields.Float(compute='_get_totals',
-                                    multi='totals',
-                                    string='Gross profit')
-    profit = fields.Float(compute='_get_totals',
-                              multi='totals',
-                              string='Net profit')
-    sell = fields.Float(compute='_get_totals',
-                            multi='totals', string='Revenue')
+        default=_default_profit_rate,
+    )
+    cogs = fields.Float(
+        compute="_compute_totals",
+        multi="totals",
+        string="Total COGS",
+        digits=dp.get_precision("Account"),
+    )
+    overhead = fields.Float(
+        compute="_compute_totals",
+        digits=dp.get_precision("Account"),
+        multi="totals",
+        string="Total overhead",
+    )
+    cost = fields.Float(
+        compute="_compute_totals",
+        type="float",
+        digits=dp.get_precision("Account"),
+        multi="totals",
+        string="Total cost",
+    )
+    gross_profit = fields.Float(
+        compute="_compute_totals",
+        multi="totals",
+        digits=dp.get_precision("Account"),
+        string="Gross profit",
+    )
+    profit = fields.Float(
+        compute="_compute_totals",
+        multi="totals",
+        string="Net profit",
+        digits=dp.get_precision("Account"),
+    )
+    sell = fields.Float(
+        compute="_compute_totals",
+        multi="totals",
+        string="Revenue",
+        digits=dp.get_precision("Account"),
+    )
 
-    _constraints = [(_check_labor_uom, 'Error ! The labor must be entered '
-                                       'in the default labor unit of measure.',
-                     ['uom_id', 'bid_id'])]
+    _constraints = [
+        (
+            _check_labor_uom,
+            "Error ! The labor must be entered "
+            "in the default labor unit of measure.",
+            ["uom_id", "bid_id"],
+        )
+    ]
 
 
 class ProjectBidOtherExpenses(models.Model):
-    _name = 'project.bid.other.expenses'
+    _name = "project.bid.other.expenses"
     _description = "Project Bid Other Expenses"
 
     @api.multi
-    def _get_totals(self):
+    def _compute_totals(self):
         for record in self:
-            cogs = record.quantity*record.unit_cost
-            overhead = cogs * record.overhead_rate/100
+            cogs = record.quantity * record.unit_cost
+            overhead = cogs * record.overhead_rate / 100
             cost = cogs + overhead
-            profit = cogs*record.profit_rate/100
+            profit = cogs * record.profit_rate / 100
             sell = cost + profit
             gross_profit = sell - cogs
             record.cogs = cogs
@@ -1183,50 +1413,86 @@ class ProjectBidOtherExpenses(models.Model):
 
     @api.model
     def _default_profit_rate(self):
-        return self.env.context.get('profit_rate') or 0.0
+        return self.env.context.get("profit_rate") or 0.0
 
     @api.model
     def _default_overhead_rate(self):
-        return self.env.context.get('overhead_rate') or 0.0
+        return self.env.context.get("overhead_rate") or 0.0
 
-    bid_id = fields.Many2one('project.bid', 'Project Bid',
-                              index=True, required=True,
-                              ondelete='cascade')
-    product_id = fields.Many2one('product.product',
-                                  'Expenses product', required=True)
-    name = fields.Char(related='product_id.name', string="Description",
-                           readonly=True)
-    quantity = fields.Float('Quantity', required=True)
+    bid_id = fields.Many2one(
+        "project.bid",
+        "Project Bid",
+        index=True,
+        required=True,
+        ondelete="cascade",
+    )
+    product_id = fields.Many2one(
+        "product.product", "Expenses product", required=True
+    )
+    name = fields.Char(
+        related="product_id.name", string="Description", readonly=True
+    )
+    quantity = fields.Float(
+        "Quantity",
+        required=True,
+        digits=dp.get_precision("Product Unit of Measure"),
+    )
     unit_cost = fields.Float(
-        related = 'product_id.standard_price', string='Unit cost',
-        store=False, readonly=True,
-        digits=dp.get_precision('Account'))
-    uom_id = fields.Many2one(related = 'product_id.uom_id', string="UoM",
-                             readonly=True)
+        related="product_id.standard_price",
+        string="Unit cost",
+        store=False,
+        readonly=True,
+        digits=dp.get_precision("Account"),
+    )
+    uom_id = fields.Many2one(
+        related="product_id.uom_id", string="UoM", readonly=True
+    )
     overhead_rate = fields.Float(
-        'Overhead %', required=True,
-        digits=dp.get_precision('Account'),
-        default = _default_overhead_rate)
+        "Overhead %",
+        required=True,
+        digits=dp.get_precision("Account"),
+        default=_default_overhead_rate,
+    )
     profit_rate = fields.Float(
-        'Profit (%) over COGS', required=True,
-        digits=dp.get_precision('Account'),
+        "Profit (%) over COGS",
+        required=True,
+        digits=dp.get_precision("Account"),
         help="Profit % over COGS",
-        default = _default_profit_rate)
+        default=_default_profit_rate,
+    )
     cogs = fields.Float(
-        compute='_get_totals', multi='totals',
-        string='Total COGS')
+        compute="_compute_totals",
+        multi="totals",
+        string="Total COGS",
+        digits=dp.get_precision("Account"),
+    )
     overhead = fields.Float(
-        compute ='_get_totals', multi='totals',
-        string='Total overhead cost')
+        compute="_compute_totals",
+        multi="totals",
+        digits=dp.get_precision("Account"),
+        string="Total overhead cost",
+    )
     cost = fields.Float(
-        compute = '_get_totals', multi='totals',
-        string='Total cost')
-    gross_profit = fields.Float(compute = '_get_totals',
-                                    multi='totals',
-                                    string='Gross profit')
+        compute="_compute_totals",
+        multi="totals",
+        string="Total cost",
+        digits=dp.get_precision("Account"),
+    )
+    gross_profit = fields.Float(
+        compute="_compute_totals",
+        multi="totals",
+        string="Gross profit",
+        digits=dp.get_precision("Account"),
+    )
     profit = fields.Float(
-        compute='_get_totals', multi='totals',
-        string='Net profit')
+        compute="_compute_totals",
+        multi="totals",
+        string="Net profit",
+        digits=dp.get_precision("Account"),
+    )
     sell = fields.Float(
-        compute='_get_totals', multi='totals',
-        string='Revenue')
+        compute="_compute_totals",
+        multi="totals",
+        string="Revenue",
+        digits=dp.get_precision("Account"),
+    )
