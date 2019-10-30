@@ -1,11 +1,9 @@
-# -*- coding: utf-8 -*-
 # Copyright 2017 Eficent Business and IT Consulting Services S.L.
 # License AGPL-3.0 or later (https://www.gnu.org/licenses/agpl.html).
 
 from odoo import api, fields, models, _
 from odoo.addons import decimal_precision as dp
 from odoo.exceptions import UserError
-import time
 
 
 class AnalyticPlanMassCreate(models.TransientModel):
@@ -29,7 +27,7 @@ class AnalyticPlanMassCreate(models.TransientModel):
         return {
             'account_id': account.id,
             'company_id': account.company_id.id,
-            'date': time.strftime('%Y-%m-%d'),
+            'date': fields.Date.today(),
             'labor_cost': 0.0
         }
 
@@ -63,18 +61,18 @@ class AnalyticPlanMassCreate(models.TransientModel):
 
     @api.multi
     def _prepare_analytic_line_plan(self, wizard, item, product,
-                                    amount_currency, type, common):
-        if type == 'expense':
+                                    amount_currency, a_type, common):
+        if a_type == 'expense':
             general_account_id = product.product_tmpl_id.\
                 property_account_expense_id.id
             if not general_account_id:
                 general_account_id =\
                     product.categ_id.property_account_expense_categ_id.id
             journal_id = product.expense_analytic_plan_journal_id \
-                         and product.expense_analytic_plan_journal_id.id \
-                         or False
+                and product.expense_analytic_plan_journal_id.id \
+                or False
             amount = item.material_cost
-        elif type == 'labor':
+        elif a_type == 'labor':
             general_account_id = product.product_tmpl_id.\
                 property_account_expense_id.id
             if not general_account_id:
@@ -96,18 +94,18 @@ class AnalyticPlanMassCreate(models.TransientModel):
                 or False
         if not general_account_id:
             raise UserError(
-                    _('Error !'
-                      'There is no expense or income account '
-                      'defined for this product: "%s" (id:%d)'
-                      ) % (product.name, product.id,))
+                _('Error !'
+                  'There is no expense or income account '
+                  'defined for this product: "%s" (id:%d)'
+                  ) % (product.name, product.id,))
 
         if not journal_id:
             raise UserError(
-                        _('Error !'
-                          'There is no planning expense or revenue '
-                          'journals defined for this product: "%s" (id:%d)'
-                          ) % (product.name, product.id,))
-        if type in ('expense', 'labor'):
+                _('Error !'
+                  'There is no planning expense or revenue '
+                  'journals defined for this product: "%s" (id:%d)'
+                  ) % (product.name, product.id,))
+        if a_type in ('expense', 'labor'):
             amount_currency *= -1
             amount *= -1
         data = {
