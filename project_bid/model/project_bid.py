@@ -42,8 +42,8 @@ class ProjectBid(models.Model):
     _description = "Project Bid"
     _inherit = ["mail.thread"]
 
+    @api.multi
     @api.constrains("parent_id")
-    @api.one
     def check_recursion(self):
         if not super(ProjectBid, self)._check_recursion():
             raise ValidationError(_("The parent cannot be itself"))
