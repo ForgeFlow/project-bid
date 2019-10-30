@@ -40,17 +40,8 @@
         <field name="view_type">form</field>
         <field name="view_mode">form</field>
         <field name="view_id" ref="view_analytic_plan_mass_create"/>
+        <field name="binding_model_id" ref="analytic.model_account_analytic_account"/>
         <field name="target">new</field>
-    </record>
-
-    <record model="ir.values" id="analytic_plan_mass_create">
-        <field name="model_id" ref="analytic.model_account_analytic_account" />
-        <field name="object" eval="1" />
-        <field name="name">Create Analytic Planning Lines</field>
-        <field name="key2">client_action_multi</field>
-        <field name="value" eval="'ir.actions.act_window,' + str(ref('action_analytic_plan_mass_create'))" />
-        <field name="key">action</field>
-        <field name="model">account.analytic.account</field>
     </record>
 
 </odoo>
