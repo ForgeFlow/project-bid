@@ -1,10 +1,7 @@
-# -*- coding: utf-8 -*-
 # © 2015-17 Eficent Business and IT Consulting Services S.L.
 # License LGPL-3.0 or later (https://www.gnu.org/licenses/lgpl.html).
 
 from odoo import api, fields, models, _
-import time
-import odoo.addons.decimal_precision as dp
 from odoo.exceptions import ValidationError
 
 
@@ -12,13 +9,13 @@ class ProjectBid(models.Model):
     _inherit = 'project.bid'
 
     project_id = fields.Many2one(
-            'project.project', 'Project', required=False,
-            ondelete='set null', index=True,
-            readonly=True, states={'draft': [('readonly', False)]})
+        'project.project', 'Project', required=False,
+        ondelete='set null', index=True,
+        readonly=True, states={'draft': [('readonly', False)]})
     plan_lines = fields.Many2many(
-            'account.analytic.line.plan',
-            string='Analytic Plan Lines',
-            readonly=True, copy=False)
+        'account.analytic.line.plan',
+        string='Analytic Plan Lines',
+        readonly=True, copy=False)
 
     @api.model
     def _prepare_cost_plan_lines(self, line):
@@ -78,7 +75,7 @@ class ProjectBid(models.Model):
         return [{
             'account_id': account_id.id,
             'name': name,
-            'date': time.strftime('%Y-%m-%d'),
+            'date': fields.Date.today(),
             'product_id': product_id.id,
             'product_uom_id': uom_id.id,
             'unit_amount': line.quantity,
@@ -135,13 +132,12 @@ class ProjectBid(models.Model):
             if account_id.active_analytic_planning_version != default_plan:
                 raise ValidationError(
                     _('The active planning version of the '
-                      'analytic account must be %s. ')
-                     % (default_plan.name,))
+                      'analytic account must be %s. ') % (default_plan.name,))
 
             return [{
                 'account_id': bid.project_id.analytic_account_id.id,
                 'name': product_id.name,
-                'date': time.strftime('%Y-%m-%d'),
+                'date': fields.Date.today(),
                 'product_id': product_id.id,
                 'product_uom_id': product_id.uom_id.id,
                 'unit_amount': 1,
