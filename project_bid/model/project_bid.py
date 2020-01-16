@@ -197,7 +197,7 @@ class ProjectBid(models.Model):
                 val["bid_id"] = bid.id
                 line_id = costs_line_obj.create(val)
                 vals.append(line_id.id)
-            bid.totals_non_material = vals
+            bid.wbs_totals_non_material = vals
 
     @api.multi
     def _compute_totals_all(self):
