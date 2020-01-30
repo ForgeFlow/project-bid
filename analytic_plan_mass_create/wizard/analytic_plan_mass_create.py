@@ -10,6 +10,13 @@ class AnalyticPlanMassCreate(models.TransientModel):
     _name = "analytic.plan.mass.create"
     _description = "Create multiple analytic plan lines"
 
+    def default_template_id(self):
+        template = self.env['analytic.plan.mass.create.template'].search([], limit=1)
+        if template:
+            return template
+        else:
+            return False
+
     item_ids = fields.One2many(
         'analytic.plan.mass.create.item',
         'wiz_id',
@@ -19,7 +26,7 @@ class AnalyticPlanMassCreate(models.TransientModel):
         'analytic.plan.mass.create.template',
         'Template',
         required=True,
-        ondelete='cascade'
+        default=default_template_id,
     )
 
     @api.model
@@ -51,7 +58,7 @@ class AnalyticPlanMassCreate(models.TransientModel):
     def _prepare_analytic_line_plan_common(self, wizard, item):
         return {
             'account_id': item.account_id.id,
-            'name': item.account_id.name,
+            'name': 'Plann Lines at %s' % item.date,
             'date': item.date,
             'currency_id': wizard.template_id.currency_id.id,
             'user_id': self._uid,
@@ -111,6 +118,7 @@ class AnalyticPlanMassCreate(models.TransientModel):
         data = {
             'amount_currency': amount_currency,
             'amount': amount,
+            'account_id': item.account_id.id,
             'product_id': product.id,
             'product_uom_id':
                 product.uom_id.id,
@@ -184,18 +192,13 @@ class AnalyticPlanMassCreateItem(models.TransientModel):
     wiz_id = fields.Many2one(
         'analytic.plan.mass.create',
         'Wizard',
-        required=True,
-        ondelete='cascade',
-        readonly=True
     )
     account_id = fields.Many2one(
         'account.analytic.account',
         'Analytic Account',
-        required=True
     )
     date = fields.Date(
         'Date',
-        required=True
     )
     material_cost = fields.Float(
         'Planned material cost',
