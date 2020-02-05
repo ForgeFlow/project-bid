@@ -13,3 +13,4 @@ class ProjectBidTemplate(models.Model):
         'product.product', 'Revenue product', required=True)
     expense_product_id = fields.Many2one(
         'product.product', 'Default material expenses product', required=True)
+    quotation_template_id = fields.Many2one('sale.order.template')

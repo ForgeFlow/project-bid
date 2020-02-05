@@ -12,6 +12,7 @@ class ProjectBid(models.Model):
         'project.project', 'Project', required=False,
         ondelete='set null', index=True,
         readonly=True, states={'draft': [('readonly', False)]})
+    sale_ids = fields.One2many('sale.order', 'project_bid_id', readonly=True)
     plan_lines = fields.Many2many(
         'account.analytic.line.plan',
         string='Analytic Plan Lines',
@@ -80,7 +81,7 @@ class ProjectBid(models.Model):
             'product_uom_id': uom_id.id,
             'unit_amount': line.quantity,
             'unit_price': product_id.standard_price,
-            'amount': -1*line.unit_cost *
+            'amount': -1 * line.unit_cost *
             line.quantity,
             'general_account_id': general_account_id,
             'journal_id': journal_id,
@@ -206,3 +207,25 @@ class ProjectBid(models.Model):
         res = super(ProjectBid, self).action_button_cancel()
         self._delete_analytic_lines()
         return res
+
+    @api.multi
+    def prepare_sale_order(self):
+        template = self.bid_template_id.quotation_template_id
+        if not template:
+            raise ValidationError('No quotation tempalte in the bid template')
+        return {'partner_id': self.partner_id.id,
+                'project_bid_id': self.id,
+                'analytic_account_id': self.project_id.analytic_account_id.id,
+                'sale_order_template_id': self.bid_template_id.quotation_template_id.id}
+
+    @api.multi
+    def action_button_create_quotation(self):
+        for bid in self:
+            so_vals = self.prepare_sale_order()
+            so = self.env['sale.order'].create(so_vals)
+            so.onchange_sale_order_template_id()
+
+
+class SaleOrder(models.Model):
+    _inherit = 'sale.order'
+    project_bid_id = fields.Many2one('project.bid')

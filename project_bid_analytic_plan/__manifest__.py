@@ -8,7 +8,7 @@
     "author": "Eficent",
     "website": "www.eficent.com",
     "category": "Generic Modules/Projects & Services",
-    "depends": ["project_bid", "analytic_plan",
+    "depends": ["project_bid", "analytic_plan", "sale_management",
                 "analytic_resource_plan"],
     "summary": "Allows to create planning lines from the project bid.",
     "data": [
