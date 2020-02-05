@@ -140,7 +140,7 @@ class ProjectBid(models.Model):
         bid_ids = []
         costs_line_obj = self.env["project.bid.total.labor"]
         for bid in self:
-            if bid.id and type(bid.id) == int:
+            if bid.id and isinstance(bid.id, int):
                 bid_ids = bid.get_child_bids()
             vals = []
             items = {}
@@ -294,7 +294,7 @@ class ProjectBid(models.Model):
         if self.ids:
             for bid in self:
                 vals = []
-                if bid.id and type(bid.id) == int:
+                if bid.id and isinstance(bid.id, int):
                     bid_ids = bid.get_child_bids()
                 items = {}
                 material_cogs = 0.0
@@ -424,7 +424,7 @@ class ProjectBid(models.Model):
     def _compute_wbs_totals(self):
         bid_ids = []
         for bid in self:
-            if bid.id and type(bid.id) == int:
+            if bid.id and isinstance(bid.id, int):
                 bid_ids = bid.get_child_bids()
             total_cogs = 0.0
             total_overhead = 0.0
@@ -829,6 +829,19 @@ class ProjectBidComponent(models.Model):
 
             res.append((item.id, data))
         return res
+
+    @api.model
+    def name_search(self, name='', args=None, operator='ilike', limit=100):
+        # Make a search with default criteria
+        names1 = super(models.Model, self).name_search(
+            name=name, args=args, operator=operator, limit=limit)
+        # Make the other search
+        names2 = []
+        if name:
+            domain = [('bid_id.name', '=ilike', name + '%')]
+            names2 = self.search(domain, limit=limit).name_get()
+        # Merge both results
+        return list(set(names1) | set(names2))[:limit]
 
     @api.multi
     def _compute_totals(self):
