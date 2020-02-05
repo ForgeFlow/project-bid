@@ -10,7 +10,8 @@
             <field name="type">form</field>
             <field name="arch" type="xml">
                 <group name="mis" position="inside">
-                    <field name="version_id"/>
+                    <field name="quotation_template_id"/>
+                    <field name="version_id"/>                    
                     <field name="revenue_product_id"/>
                     <field name="expense_product_id"/>
                 </group>
