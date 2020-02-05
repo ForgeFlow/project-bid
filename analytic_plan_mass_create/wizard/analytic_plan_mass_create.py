@@ -11,7 +11,8 @@ class AnalyticPlanMassCreate(models.TransientModel):
     _description = "Create multiple analytic plan lines"
 
     def default_template_id(self):
-        template = self.env['analytic.plan.mass.create.template'].search([], limit=1)
+        template = self.env['analytic.plan.mass.create.template'].search(
+            [], limit=1)
         if template:
             return template
         else:
@@ -174,7 +175,7 @@ class AnalyticPlanMassCreate(models.TransientModel):
                 res.append(plan_line_id.id)
 
         return {
-            'domain': "[('id','in', ["+','.join(map(str, res))+"])]",
+            'domain': "[('id','in', [" + ','.join(map(str, res)) + "])]",
             'name': _('Analytic Plan Lines'),
             'view_type': 'form',
             'view_mode': 'tree,form',
