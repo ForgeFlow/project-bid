@@ -36,6 +36,10 @@
                         states="approve"
                         string="Transfer to Project"
                         type="object"/>
+                <button name="action_button_create_quotation"
+                        states="approve"
+                        string="Create Quotation"
+                        type="object"/>                        
             </xpath>
             <xpath expr="//notebook" position="inside">
                 <page string="Analytic Plan"
@@ -48,6 +52,12 @@
                                nolabel="1"/>
                     </group>
                 </page>
+                <page string="Quotations"
+                      name="quote">
+                    <group>
+                        <field name="sale_ids"/>
+                    </group>
+                </page>                
             </xpath>
         </field>
     </record>
