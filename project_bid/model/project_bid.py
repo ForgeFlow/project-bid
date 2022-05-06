@@ -83,12 +83,12 @@ class ProjectBid(models.Model):
         for bid in self:
             costs_line_obj = self.env['project.bid.total.labor']
             vals = []
-            items = {}
+            items = {"orphaned": {"quantity": 0, "cogs":0, "overhead":0, "cost": 0, "profit":0, "sell":0}}
             for component in bid.components:
                 for labor in component.labor:
                     if labor.product_id.id not in items:
                         items[labor.product_id.id] = {
-                            'name': labor.product_id.name,
+                            'name': labor.product_id.name or "Orphaned",
                             'quantity': labor.quantity,
                             'cogs': labor.cogs,
                             'overhead': labor.overhead,
@@ -96,7 +96,7 @@ class ProjectBid(models.Model):
                             'profit': labor.profit,
                             'sell': labor.sell,
                         }
-                    else:
+                    elif labor.product_id:
                         items[labor.product_id.id]['quantity'] \
                             += labor.quantity
                         items[labor.product_id.id]['cogs'] \
@@ -109,11 +109,23 @@ class ProjectBid(models.Model):
                             += labor.profit
                         items[labor.product_id.id]['sell'] \
                             += labor.sell
-
+                    else:
+                        items["orphaned"]['quantity'] \
+                            += labor.quantity
+                        items["orphaned"]['cogs'] \
+                            += labor.cogs
+                        items["orphaned"]['overhead'] \
+                            += labor.overhead
+                        items["orphaned"]['cost'] \
+                            += labor.cost
+                        items["orphaned"]['profit'] \
+                            += labor.profit
+                        items["orphaned"]['sell'] \
+                            += labor.sell
             for labor in bid.other_labor:
                 if labor.product_id.id not in items:
                     items[labor.product_id.id] = {
-                        'name': labor.product_id.name,
+                        'name': labor.product_id.name or "Orphaned",
                         'quantity': labor.quantity,
                         'cogs': labor.cogs,
                         'overhead': labor.overhead,
@@ -121,7 +133,7 @@ class ProjectBid(models.Model):
                         'profit': labor.profit,
                         'sell': labor.sell,
                     }
-                else:
+                elif labor.product_id:
                     items[labor.product_id.id]['quantity'] \
                         += labor.quantity
                     items[labor.product_id.id]['cogs'] \
@@ -134,6 +146,19 @@ class ProjectBid(models.Model):
                         += labor.profit
                     items[labor.product_id.id]['sell'] \
                         += labor.sell
+                else:
+                    items["orphaned"]['quantity'] \
+                        += labor.quantity
+                    items["orphaned"]['cogs'] \
+                        += labor.cogs
+                    items["orphaned"]['overhead'] \
+                        += labor.overhead
+                    items["orphaned"]['cost'] \
+                        += labor.cost
+                    items["orphaned"]['profit'] \
+                        += labor.profit
+                    items["orphaned"]['sell'] \
+                        += labor.sell    
             for val in items.values():
                 val['bid_id'] = bid.id
                 line_id = costs_line_obj.create(val)
@@ -148,13 +173,13 @@ class ProjectBid(models.Model):
             if bid.id and type(bid.id) == int:
                 bid_ids = bid.get_child_bids()
             vals = []
-            items = {}
+            items = {"orphaned": {"name": "Orphaned", "quantity": 0, "cogs":0, "overhead":0, "cost": 0, "profit":0, "sell":0}}
             for bid_2 in self.browse(bid_ids):
                 for component in bid_2.components:
                     for labor in component.labor:
                         if labor.product_id.id not in items:
                             items[labor.product_id.id] = {
-                                'name': labor.product_id.name,
+                                'name': labor.product_id.name or "Orphaned",
                                 'quantity': labor.quantity,
                                 'cogs': labor.cogs,
                                 'overhead': labor.overhead,
@@ -162,7 +187,7 @@ class ProjectBid(models.Model):
                                 'profit': labor.profit,
                                 'sell': labor.sell,
                             }
-                        else:
+                        elif labor.product_id:
                             items[labor.product_id.id]['quantity'] \
                                 += labor.quantity
                             items[labor.product_id.id]['cogs'] \
@@ -175,11 +200,24 @@ class ProjectBid(models.Model):
                                 += labor.profit
                             items[labor.product_id.id]['sell'] \
                                 += labor.sell
+                        else:
+                            items["orphaned"]['quantity'] \
+                                += labor.quantity
+                            items["orphaned"]['cogs'] \
+                                += labor.cogs
+                            items["orphaned"]['overhead'] \
+                                += labor.overhead
+                            items["orphaned"]['cost'] \
+                                += labor.cost
+                            items["orphaned"]['profit'] \
+                                += labor.profit
+                            items["orphaned"]['sell'] \
+                                += labor.sell
 
                 for labor in bid_2.other_labor:
                     if labor.product_id.id not in items:
                         items[labor.product_id.id] = {
-                            'name': labor.product_id.name,
+                            'name': labor.product_id.name or "Orphaned",
                             'quantity': labor.quantity,
                             'cogs': labor.cogs,
                             'overhead': labor.overhead,
@@ -187,7 +225,7 @@ class ProjectBid(models.Model):
                             'profit': labor.profit,
                             'sell': labor.sell,
                         }
-                    else:
+                    elif labor.product_id:
                         items[labor.product_id.id]['quantity'] \
                             += labor.quantity
                         items[labor.product_id.id]['cogs'] \
@@ -200,18 +238,31 @@ class ProjectBid(models.Model):
                             += labor.profit
                         items[labor.product_id.id]['sell'] \
                             += labor.sell
+                    else:
+                        items["orphaned"]['quantity'] \
+                            += labor.quantity
+                        items["orphaned"]['cogs'] \
+                            += labor.cogs
+                        items["orphaned"]['overhead'] \
+                            += labor.overhead
+                        items["orphaned"]['cost'] \
+                            += labor.cost
+                        items["orphaned"]['profit'] \
+                            += labor.profit
+                        items["orphaned"]['sell'] \
+                            += labor.sell
             for val in items.values():
                 val['bid_id'] = bid.id
                 line_id = costs_line_obj.create(val)
                 vals.append(line_id.id)
-            bid.totals_non_material = vals
+            bid.wbs_totals_non_material = vals
 
     @api.multi
     def _get_totals_all(self):
         if self.ids:
             for bid in self:
                 vals=[]
-                items = {}
+                items = {"orphaned": {"quantity": 0, "cogs":0, "overhead":0, "cost": 0, "profit":0, "sell":0}}
                 material_cogs = 0.0
                 material_overhead = 0.0
                 material_cost = 0.0
@@ -242,7 +293,7 @@ class ProjectBid(models.Model):
                 for expense in bid.other_expenses:
                     if expense.product_id.id not in items:
                         items[expense.product_id.id] = {
-                            'name': expense.product_id.name,
+                            'name': expense.product_id.name or "Orphaned",
                             'quantity': expense.quantity,
                             'cogs': expense.cogs,
                             'overhead': expense.overhead,
@@ -250,7 +301,7 @@ class ProjectBid(models.Model):
                             'profit': expense.profit,
                             'sell': expense.sell
                         }
-                    else:
+                    elif expense.product_id:
                         items[expense.product_id.id]['quantity'] \
                             += expense.quantity
                         items[expense.product_id.id]['cogs'] \
@@ -262,6 +313,19 @@ class ProjectBid(models.Model):
                         items[expense.product_id.id]['profit'] \
                             += expense.profit
                         items[expense.product_id.id]['sell'] \
+                            += expense.sell
+                    else:
+                        items["orphaned"]['quantity'] \
+                            += expense.quantity
+                        items["orphaned"]['cogs'] \
+                            += expense.cogs
+                        items["orphaned"]['overhead'] \
+                            += expense.overhead
+                        items["orphaned"]['cost'] \
+                            += expense.cost
+                        items["orphaned"]['profit'] \
+                            += expense.profit
+                        items["orphaned"]['sell'] \
                             += expense.sell
 
                 val = {
@@ -304,7 +368,7 @@ class ProjectBid(models.Model):
                 vals = []
                 if bid.id and type(bid.id) == int:
                     bid_ids = bid.get_child_bids()
-                items = {}
+                items = {"orphaned": {"quantity": 0, "cogs":0, "overhead":0, "cost": 0, "profit":0, "sell":0}}
                 material_cogs = 0.0
                 material_overhead = 0.0
                 material_cost = 0.0
@@ -335,7 +399,7 @@ class ProjectBid(models.Model):
                     for expense in bid_2.other_expenses:
                         if expense.product_id.id not in items:
                             items[expense.product_id.id] = {
-                                'name': expense.product_id.name,
+                                'name': expense.product_id.name or "Orphaned",
                                 'quantity': expense.quantity,
                                 'cogs': expense.cogs,
                                 'overhead': expense.overhead,
@@ -343,7 +407,7 @@ class ProjectBid(models.Model):
                                 'profit': expense.profit,
                                 'sell': expense.sell
                             }
-                        else:
+                        elif expense.product_id:
                             items[expense.product_id.id]['quantity'] \
                                 += expense.quantity
                             items[expense.product_id.id]['cogs'] \
@@ -355,6 +419,19 @@ class ProjectBid(models.Model):
                             items[expense.product_id.id]['profit'] \
                                 += expense.profit
                             items[expense.product_id.id]['sell'] \
+                                += expense.sell
+                        else:
+                            items["orphaned"]['quantity'] \
+                                += expense.quantity
+                            items["orphaned"]['cogs'] \
+                                += expense.cogs
+                            items["orphaned"]['overhead'] \
+                                += expense.overhead
+                            items["orphaned"]['cost'] \
+                                += expense.cost
+                            items["orphaned"]['profit'] \
+                                += expense.profit
+                            items["orphaned"]['sell'] \
                                 += expense.sell
                 val = {
                     'bid_id': bid.id,
@@ -383,7 +460,7 @@ class ProjectBid(models.Model):
                     line_id = costs_line_obj.create(val)
                     vals.append(line_id.id)
 
-                bid.wbs_totals_all = vals
+                bid.wbs_totals_all = [(6,0, vals)]
 
     @api.multi
     def _get_totals(self):
@@ -792,6 +869,7 @@ class ProjectBidComponent(models.Model):
                 labor_cost += labor.cost
                 labor_profit += labor.profit
                 labor_sell += labor.sell
+                quantity += labor.quantity
 
             for material in record.material_ids:
                 material_cogs += material.cogs
