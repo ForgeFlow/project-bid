@@ -5,7 +5,7 @@
     "name": "Project Bid",
     "version": "12.0.1.0.0",
     "author": "Eficent Business and IT Consulting Services S.L.",
-    "website": "www.eficent.com",
+    "website": "https://github.com/forgeflow/project-bid",
     "license": "LGPL-3",
     "category": "Generic Modules/Projects & Services",
     "depends": ["project", "product"],

@@ -1,5 +1,6 @@
-from odoo import _, models, fields, api
+from odoo import _, api, fields, models
 from odoo.exceptions import ValidationError
+
 from odoo.addons import decimal_precision as dp
 
 
@@ -15,13 +16,13 @@ class ProjectBidTemplate(models.Model):
         "project_bid_template_id",
         string="Default component labor",
     )
-    profit_rate = fields.Float("Profit (%)", help="Profit as % of COGS",
-                               digits=dp.get_precision("Account"))
-    overhead_rate = fields.Float("Default overhead (%)",
-                                 digits=dp.get_precision("Account"))
-    labor_uom_id = fields.Many2one(
-        "uom.uom", "Default labor UoM", required=True
+    profit_rate = fields.Float(
+        "Profit (%)", help="Profit as % of COGS", digits=dp.get_precision("Account")
     )
+    overhead_rate = fields.Float(
+        "Default overhead (%)", digits=dp.get_precision("Account")
+    )
+    labor_uom_id = fields.Many2one("uom.uom", "Default labor UoM", required=True)
 
     @api.multi
     @api.constrains("default_component_labor", "labor_uom_id")
