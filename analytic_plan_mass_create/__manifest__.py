@@ -5,18 +5,15 @@
     "name": "Analytic Plan Mass Create",
     "version": "12.0.1.0.0",
     "author": "Eficent",
-    "website": "www.eficent.com",
+    "website": "https://github.com/forgeflow/project-bid",
     "category": "Generic Modules/Projects & Services",
     "summary": """Analytic Plan Mass Create""",
     "license": "AGPL-3",
-    "depends": [
-        "analytic_plan",
-        "account"
-    ],
+    "depends": ["analytic_plan", "account"],
     "data": [
         "security/ir.model.access.csv",
         "views/analytic_plan_mass_create_template_view.xml",
-        "wizard/analytic_plan_mass_create_view.xml"
+        "wizard/analytic_plan_mass_create_view.xml",
     ],
-    'installable': True,
+    "installable": True,
 }

@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8" ?>
 <odoo>
 
     <record id="view_analytic_plan_mass_create" model="ir.ui.view">
@@ -8,26 +8,29 @@
         <field name="arch" type="xml">
              <form string="Create Plan Lines">
                  <group>
-                     <field name="template_id"/>
+                     <field name="template_id" />
                  </group>
-                 <newline/>
+                 <newline />
                  <group>
                      <field name="item_ids" nolabel="1" colspan="2">
                           <tree string="Details" create="false" editable="bottom">
-                              <field name="account_id"/>
-                              <field name="delete_existing"/>
-                              <field name="date"/>
-                              <field name="material_cost"/>
-                              <field name="labor_cost"/>
-                              <field name="revenue"/>
+                              <field name="account_id" />
+                              <field name="delete_existing" />
+                              <field name="date" />
+                              <field name="material_cost" />
+                              <field name="labor_cost" />
+                              <field name="revenue" />
                           </tree>
                      </field>
                  </group>
                  <footer>
-                     <button name="create_analytic_plan_lines"
-                             string="Create" type="object"
-                             class="oe_highlight"/>
-                     <button special="cancel" string="Cancel" class="oe_link"/>
+                     <button
+                        name="create_analytic_plan_lines"
+                        string="Create"
+                        type="object"
+                        class="oe_highlight"
+                    />
+                     <button special="cancel" string="Cancel" class="oe_link" />
                  </footer>
             </form>
         </field>
@@ -39,10 +42,9 @@
         <field name="res_model">analytic.plan.mass.create</field>
         <field name="view_type">form</field>
         <field name="view_mode">form</field>
-        <field name="view_id" ref="view_analytic_plan_mass_create"/>
-        <field name="binding_model_id" ref="analytic.model_account_analytic_account"/>
+        <field name="view_id" ref="view_analytic_plan_mass_create" />
+        <field name="binding_model_id" ref="analytic.model_account_analytic_account" />
         <field name="target">new</field>
     </record>
 
 </odoo>
-
