@@ -63,7 +63,6 @@
     >
         <field name="name">Analytic Plan Mass Create Templates</field>
         <field name="res_model">analytic.plan.mass.create.template</field>
-        <field name="view_type">form</field>
         <field name="view_mode">tree,form</field>
         <field
             name="search_view_id"

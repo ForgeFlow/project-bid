@@ -1,10 +1,8 @@
-# Copyright 2017 Eficent Business and IT Consulting Services S.L.
+# Copyright 2023 ForgeFlow S.L.
 # License AGPL-3.0 or later (https://www.gnu.org/licenses/agpl.html).
 
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError
-
-from odoo.addons import decimal_precision as dp
 
 
 class AnalyticPlanMassCreate(models.TransientModel):
@@ -30,7 +28,6 @@ class AnalyticPlanMassCreate(models.TransientModel):
     def _prepare_item(self, account):
         return {
             "account_id": account.id,
-            "company_id": account.company_id.id,
             "date": fields.Date.today(),
             "labor_cost": 0.0,
         }
@@ -62,7 +59,6 @@ class AnalyticPlanMassCreate(models.TransientModel):
             "version_id": wizard.template_id.version_id.id,
         }
 
-    @api.multi
     def _prepare_analytic_line_plan(
         self, wizard, item, product, amount_currency, a_type, common
     ):
@@ -142,7 +138,6 @@ class AnalyticPlanMassCreate(models.TransientModel):
         data.update(common)
         return data
 
-    @api.multi
     def create_analytic_plan_lines(self):
         res = []
         wizard = self
@@ -202,7 +197,6 @@ class AnalyticPlanMassCreate(models.TransientModel):
         return {
             "domain": "[('id','in', [" + ",".join(map(str, res)) + "])]",
             "name": _("Analytic Plan Lines"),
-            "view_type": "form",
             "view_mode": "tree,form",
             "res_model": "account.analytic.line.plan",
             "view_id": False,
@@ -228,17 +222,15 @@ class AnalyticPlanMassCreateItem(models.TransientModel):
     )
     material_cost = fields.Float(
         "Planned material cost",
-        digits=dp.get_precision("Account"),
+        digits="Account",
         help="Planned material cost, expressed it in positive quantity.",
     )
     labor_cost = fields.Float(
         "Planned labor cost",
-        digits=dp.get_precision("Account"),
+        digits="Account",
         help="Planned labor cost, expressed it in positive quantity.",
     )
-    revenue = fields.Float(
-        "Planned revenue", digits=dp.get_precision("Account"), help="Planned Revenue"
-    )
+    revenue = fields.Float("Planned revenue", digits="Account", help="Planned Revenue")
     delete_existing = fields.Boolean(
         "Delete existing",
         help="""Delete existing planned lines. Will delete all planning lines
