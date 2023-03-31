@@ -1,5 +1,5 @@
-from odoo.tests import common
 from odoo import fields
+from odoo.tests import common
 
 
 class TestProjectBid(common.TransactionCase):
@@ -99,8 +99,7 @@ class TestProjectBid(common.TransactionCase):
                             "product_id": self.product.id,
                             "name": "Test Project Bid Component Labor",
                             "quantity": 10,
-                            "default_code": "Test Project Bid Component "
-                                            "Material",
+                            "default_code": "Test Project Bid Component " "Material",
                             "unit_cost": 100,
                         },
                     )
@@ -131,16 +130,12 @@ class TestProjectBid(common.TransactionCase):
             self.project_bid.total_npm_percent,
             self.project_bid.wbs_total_npm_percent,
         )
-        self.assertEqual(
-            self.project_bid.total_gp, self.project_bid.wbs_total_gp
-        )
+        self.assertEqual(self.project_bid.total_gp, self.project_bid.wbs_total_gp)
         self.assertEqual(
             self.project_bid.total_overhead,
             self.project_bid.wbs_total_overhead,
         )
-        self.assertEqual(
-            self.project_bid.total_npm, self.project_bid.wbs_total_npm
-        )
+        self.assertEqual(self.project_bid.total_npm, self.project_bid.wbs_total_npm)
         self.assertEqual(
             self.project_bid.total_npm_percent,
             self.project_bid.wbs_total_npm_percent,
