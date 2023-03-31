@@ -6,7 +6,7 @@
         <field name="model">analytic.plan.mass.create.template</field>
         <field name="type">tree</field>
         <field name="arch" type="xml">
-            <tree string="Template">
+            <tree>
                 <field name="name" />
                 <field name="labor_cost_product_id" />
                 <field name="material_cost_product_id" />

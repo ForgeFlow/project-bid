@@ -8,7 +8,7 @@ class AnalyticPlanMassCreateTemplate(models.Model):
     _name = "analytic.plan.mass.create.template"
     _description = "Template to create multiple analytic plan lines"
 
-    name = fields.Char("Name", required=True)
+    name = fields.Char(required=True)
     labor_cost_product_id = fields.Many2one(
         "product.product", "Default Labor Cost Product", required=True
     )

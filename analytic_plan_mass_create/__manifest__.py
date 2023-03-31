@@ -3,7 +3,7 @@
 
 {
     "name": "Analytic Plan Mass Create",
-    "version": "14.0.1.0.0",
+    "version": "15.0.1.0.0",
     "author": "ForgeFlow",
     "website": "https://github.com/forgeflow/project-bid",
     "category": "Generic Modules/Projects & Services",

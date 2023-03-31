@@ -103,11 +103,13 @@ class AnalyticPlanMassCreate(models.TransientModel):
                 _(
                     "Error !"
                     "There is no expense or income account "
-                    'defined for this product: "%s" (id:%d)'
+                    'defined for this product: "%(name)s" (id:%(id)d)'
                 )
                 % (
-                    product.name,
-                    product.id,
+                    {
+                        "name": product.name,
+                        "id": product.id,
+                    }
                 )
             )
 
@@ -116,11 +118,13 @@ class AnalyticPlanMassCreate(models.TransientModel):
                 _(
                     "Error !"
                     "There is no planning expense or revenue "
-                    'journals defined for this product: "%s" (id:%d)'
+                    'journals defined for this product: "%(name)s" (id:%(id)d)'
                 )
                 % (
-                    product.name,
-                    product.id,
+                    {
+                        "name": product.name,
+                        "id": product.id,
+                    }
                 )
             )
         if a_type in ("expense", "labor"):
@@ -217,9 +221,7 @@ class AnalyticPlanMassCreateItem(models.TransientModel):
         "account.analytic.account",
         "Analytic Account",
     )
-    date = fields.Date(
-        "Date",
-    )
+    date = fields.Date()
     material_cost = fields.Float(
         "Planned material cost",
         digits="Account",
