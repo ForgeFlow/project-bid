@@ -133,10 +133,10 @@ Credits
 Contributors
 ------------
 
-* Jordi Ballester Alomar <jordi.ballester@eficent.com>
-* Aarón Henríquez <ahenriquez@eficent.com>
+* Jordi Ballester Alomar <jordi.ballester@forgeflow.com>
+* Aarón Henríquez <ahenriquez@forgeflow.com>
 
 Maintainer
 ----------
 
-This module is maintained by Eficent.
+This module is maintained by ForgeFlow.

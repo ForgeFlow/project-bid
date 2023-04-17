@@ -13,3 +13,5 @@ project_bid_other_labor_bid_manager,project.bid.other.labor bid manager,model_pr
 project_bid_other_labor_bid_user,project.bid.other.labor bid user,model_project_bid_other_labor,group_project_bid_user,1,1,1,1
 project_bid_other_expense_bid_manager,project.bid.other.expense bid manager,model_project_bid_other_expenses,group_project_bid_manager,1,1,1,1
 project_bid_other_expense_bid_user,project.bid.other.expense bid user,model_project_bid_other_expenses,group_project_bid_user,1,1,1,1
+access_project_bid_totals,access_project_bid_totals,model_project_bid_totals,base.group_user,1,1,1,1
+access_project_bid_total_labor,access_project_bid_total_labor,model_project_bid_total_labor,base.group_user,1,1,1,1

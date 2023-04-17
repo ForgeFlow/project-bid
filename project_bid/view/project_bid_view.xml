@@ -92,7 +92,6 @@
                         name="bid_component_template_id"
                         options="{'no_create': True}"
                     />
-                    <field name="bid_id" readonly="1" />
                     <field name="name" />
                     <field name="overhead_rate" />
                     <field name="profit_rate" />
@@ -188,7 +187,7 @@
                             <field name="name" placeholder="Bid summary..." />
                             <field
                                 name="partner_id"
-                                domain="[('customer','=',True)]"
+                                domain="[('customer_rank','&gt;',0)]"
                                 context="{'search_default_customer':1, 'show_address': 1}"
                                 options='{"always_reload": True}'
                             />
@@ -302,8 +301,9 @@
         <field name="arch" type="xml">
             <tree
                 string="Bid"
-                fonts="bold:message_unread==True"
-                colors="red:due_by and (due_by &lt; current_date) and state=='draft';black:state in ('draft','approve');blue:state=='confirm';grey:state=='cancel'"
+                decoration-muted="state=='cancel'"
+                decoration-danger="due_by and (due_by &lt; current_date) and state=='draft'"
+                decoration-info="state=='confirm'"
             >
                 <field name="message_unread" invisible="1" />
                 <field name="complete_code" />
@@ -336,12 +336,6 @@
                     <field name="name" />
                     <field name="complete_code" />
                     <field name="created_on" />
-                    <filter
-                        string="Unread Messages"
-                        name="message_unread"
-                        domain="[('message_unread', '=', True)]"
-                        help="Unread messages"
-                    />
                 </group>
             </search>
         </field>
