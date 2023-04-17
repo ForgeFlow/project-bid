@@ -4,7 +4,7 @@
         <field name="name">project.bid.template.tree</field>
         <field name="model">project.bid.template</field>
         <field name="arch" type="xml">
-            <tree string="Template">
+            <tree>
                 <field name="name" />
             </tree>
         </field>

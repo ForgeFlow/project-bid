@@ -14,7 +14,7 @@ class ProjectBidTotalLabor(models.TransientModel):
     cogs = fields.Float("COGS", digits="Account")
     overhead = fields.Float("Overhead cost", digits="Account")
     cost = fields.Float("Total cost", digits="Account")
-    profit = fields.Float("Profit", digits="Account")
+    profit = fields.Float(digits="Account")
     sell = fields.Float("Revenue", digits="Account")
 
 
@@ -27,7 +27,7 @@ class ProjectBidTotals(models.TransientModel):
     cogs = fields.Float("COGS", digits="Account")
     overhead = fields.Float("Overhead cost", digits="Account")
     cost = fields.Float("Total cost", digits="Account")
-    profit = fields.Float("Profit", digits="Account")
+    profit = fields.Float(digits="Account")
     sell = fields.Float("Revenue", digits="Account")
 
 
@@ -38,8 +38,10 @@ class ProjectBid(models.Model):
 
     @api.constrains("parent_id")
     def check_recursion(self):
-        if not super(ProjectBid, self)._check_recursion():
+        res = super(ProjectBid, self)._check_recursion()
+        if not res:
             raise ValidationError(_("The parent cannot be itself"))
+        return res
 
     def _get_child_bids(self):
         result = {}
@@ -516,7 +518,6 @@ class ProjectBid(models.Model):
         store=True,
     )
     name = fields.Char(
-        "Name",
         size=256,
         required=True,
         readonly=True,
@@ -548,7 +549,7 @@ class ProjectBid(models.Model):
         readonly=True,
         states={"draft": [("readonly", False)]},
     )
-    notes = fields.Text("Notes", readonly=True, states={"draft": [("readonly", False)]})
+    notes = fields.Text(readonly=True, states={"draft": [("readonly", False)]})
     totals_non_material = fields.One2many(
         compute="_compute_totals_labor",
         comodel_name="project.bid.total.labor",
@@ -612,7 +613,6 @@ class ProjectBid(models.Model):
         compute="_compute_totals",
         multi="totals",
         digits="Account",
-        string="Total Overhead",
     )
     total_npm = fields.Float(
         compute="_compute_totals",
@@ -886,7 +886,6 @@ class ProjectBidComponent(models.Model):
     labor = fields.One2many(
         "project.bid.component.labor",
         "bid_component_id",
-        "Labor",
         default=_default_labor,
     )
     bid_component_template_id = fields.Many2one(
@@ -900,7 +899,6 @@ class ProjectBidComponent(models.Model):
     )
     name = fields.Char("Description", size=256, required=True)
     quantity = fields.Float(
-        "Quantity",
         compute="_compute_totals",
         multi="totals",
         digits="Product Unit of Measure",
@@ -1098,12 +1096,12 @@ class ProjectBidComponentMaterial(models.Model):
     bid_id = fields.Many2one(related="bid_component_id.bid_id", readonly=True)
     product_id = fields.Many2one("product.product", "Material product")
     name = fields.Char(related="product_id.name", string="Description", required=True)
-    quantity = fields.Float("Quantity", digits="Product Unit of Measure")
+    quantity = fields.Float(digits="Product Unit of Measure")
     default_code = fields.Char("Part #", help="Material Code")
     uom_id = fields.Many2one(
         comodel_name="uom.uom", related="product_id.uom_id", string="UoM"
     )
-    unit_cost = fields.Float("Unit Cost", required=True, digits="Account")
+    unit_cost = fields.Float(required=True, digits="Account")
     cogs = fields.Float(compute="_compute_totals", multi="totals", string="Total COGS")
     overhead = fields.Float(
         compute="_compute_totals",
@@ -1161,7 +1159,7 @@ class ProjectBidComponentLabor(models.Model):
     )
     product_id = fields.Many2one("product.product", "Labor product", required=True)
     name = fields.Char(related="product_id.name", string="Description", readonly=True)
-    quantity = fields.Float("Quantity", digits="Product Unit of Measure")
+    quantity = fields.Float(digits="Product Unit of Measure")
     uom_id = fields.Many2one(related="product_id.uom_id", string="UoM", readonly=True)
     unit_cost = fields.Float(
         related="product_id.standard_price",
@@ -1247,7 +1245,7 @@ class ProjectBidOtherLabor(models.Model):
     )
     product_id = fields.Many2one("product.product", "Labor product", required=True)
     name = fields.Char(related="product_id.name", string="Description", readonly=True)
-    quantity = fields.Float("Quantity", digits="Product Unit of Measure")
+    quantity = fields.Float(digits="Product Unit of Measure")
     uom_id = fields.Many2one(related="product_id.uom_id", string="UoM", readonly=True)
     unit_cost = fields.Float(
         related="product_id.standard_price",
@@ -1352,7 +1350,6 @@ class ProjectBidOtherExpenses(models.Model):
     product_id = fields.Many2one("product.product", "Expenses product", required=True)
     name = fields.Char(related="product_id.name", string="Description", readonly=True)
     quantity = fields.Float(
-        "Quantity",
         required=True,
         digits="Product Unit of Measure",
     )

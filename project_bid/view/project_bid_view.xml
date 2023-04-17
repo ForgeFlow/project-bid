@@ -4,7 +4,7 @@
         <field name="name">project.bid.total.labor.tree</field>
         <field name="model">project.bid.total.labor</field>
         <field name="arch" type="xml">
-            <tree string="Total Labor">
+            <tree>
                 <field name="name" />
                 <field name="quantity" sum="Total Quantity" />
                 <field name="cogs" sum="COGS" />
@@ -18,7 +18,7 @@
         <field name="name">project.bid.totals.tree</field>
         <field name="model">project.bid.totals</field>
         <field name="arch" type="xml">
-            <tree string="Totals">
+            <tree>
                 <field name="name" />
                 <field name="cogs" sum="COGS" />
                 <field name="overhead" sum="Overhead Cost" />
@@ -32,7 +32,7 @@
         <field name="name">project.bid.component.labor.tree</field>
         <field name="model">project.bid.component.labor</field>
         <field name="arch" type="xml">
-            <tree string="Component-specific labor" editable="top">
+            <tree editable="top">
                 <field name="product_id" domain="[('type', '=', 'service')]" />
                 <field name="quantity" />
                 <field name="uom_id" />
@@ -49,7 +49,7 @@
         <field name="name">project.bid.component.material.tree</field>
         <field name="model">project.bid.component.material</field>
         <field name="arch" type="xml">
-            <tree string="Component Materials" editable="top">
+            <tree editable="top">
                 <field name="product_id" />
                 <field name="name" />
                 <field name="quantity" />
@@ -67,7 +67,7 @@
         <field name="name">project.bid.component.tree</field>
         <field name="model">project.bid.component</field>
         <field name="arch" type="xml">
-            <tree string="Deriverables">
+            <tree>
                 <field name="bid_id" />
                 <field name="name" />
                 <field name="quantity" />
@@ -110,7 +110,7 @@
         <field name="name">project.bid.other.labor.tree</field>
         <field name="model">project.bid.other.labor</field>
         <field name="arch" type="xml">
-            <tree string="Other Labor" editable="top">
+            <tree editable="top">
                 <field name="product_id" domain="[('type', '=', 'service')]" />
                 <field name="quantity" />
                 <field name="uom_id" />
@@ -129,7 +129,7 @@
         <field name="name">project.bid.other.expenses.tree</field>
         <field name="model">project.bid.other.expenses</field>
         <field name="arch" type="xml">
-            <tree string="Other Expenses" editable="top">
+            <tree editable="top">
                 <field name="product_id" />
                 <field name="quantity" />
                 <field name="uom_id" />
@@ -300,7 +300,6 @@
         <field name="model">project.bid</field>
         <field name="arch" type="xml">
             <tree
-                string="Bid"
                 decoration-muted="state=='cancel'"
                 decoration-danger="due_by and (due_by &lt; current_date) and state=='draft'"
                 decoration-info="state=='confirm'"
