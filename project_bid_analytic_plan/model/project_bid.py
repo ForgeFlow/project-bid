@@ -1,7 +1,7 @@
 # © 2015-17 Eficent Business and IT Consulting Services S.L.
 # License LGPL-3.0 or later (https://www.gnu.org/licenses/lgpl.html).
 
-from odoo import api, fields, models, _
+from odoo import _, api, fields, models
 from odoo.exceptions import ValidationError
 
 
@@ -57,14 +57,11 @@ class ProjectBid(models.Model):
         )
         if not journal_id:
             raise ValidationError(
-                "No expense journal defined in the product %s"
-                % product_id.name
+                "No expense journal defined in the product %s" % product_id.name
             )
         version_id = line.bid_id.bid_template_id.version_id.id or False
 
-        general_account_id = (
-            product_id.product_tmpl_id.property_account_expense_id.id
-        )
+        general_account_id = product_id.product_tmpl_id.property_account_expense_id.id
         if not general_account_id:
             general_account_id = (
                 product_id.categ_id.property_account_expense_categ_id.id
@@ -75,11 +72,12 @@ class ProjectBid(models.Model):
                     "There is no expense account defined for this product:"
                     ' "%s" (id:%d)'
                 )
-                % (product_id.name, product_id.id,)
+                % (
+                    product_id.name,
+                    product_id.id,
+                )
             )
-        default_plan_ids = plan_version_obj.search(
-            [("default_plan", "=", True)]
-        )
+        default_plan_ids = plan_version_obj.search([("default_plan", "=", True)])
         if default_plan_ids:
             default_plan = default_plan_ids[0]
         else:
@@ -87,10 +85,7 @@ class ProjectBid(models.Model):
 
         if account_id.active_analytic_planning_version != default_plan:
             raise ValidationError(
-                _(
-                    "The active planning version of the analytic account must "
-                    "be %s. "
-                )
+                _("The active planning version of the analytic account must " "be %s. ")
                 % (default_plan.name,)
             )
 
@@ -138,7 +133,10 @@ class ProjectBid(models.Model):
                         "There is no expense journal defined "
                         'for this product: "%s" (id:%d)'
                     )
-                    % (product_id.name, product_id.id,)
+                    % (
+                        product_id.name,
+                        product_id.id,
+                    )
                 )
             version_id = bid.bid_template_id.version_id.id or False
 
@@ -155,11 +153,12 @@ class ProjectBid(models.Model):
                         "There is no expense account defined "
                         'for this product: "%s" (id:%d)'
                     )
-                    % (product_id.name, product_id.id,)
+                    % (
+                        product_id.name,
+                        product_id.id,
+                    )
                 )
-            default_plan = plan_version_obj.search(
-                [("default_plan", "=", True)]
-            )
+            default_plan = plan_version_obj.search([("default_plan", "=", True)])
             account_id = bid.project_id.analytic_account_id
             if account_id.active_analytic_planning_version != default_plan:
                 raise ValidationError(
@@ -205,9 +204,7 @@ class ProjectBid(models.Model):
         self._delete_analytic_lines()
         for bid in self:
             if not bid.project_id:
-                raise ValidationError(
-                    _("The bids must have a project assigned")
-                )
+                raise ValidationError(_("The bids must have a project assigned"))
             line_ids = []
             for component in bid.components:
                 for material in component.material_ids:
@@ -255,8 +252,7 @@ class ProjectBid(models.Model):
             "partner_id": self.partner_id.id,
             "project_bid_id": self.id,
             "analytic_account_id": self.project_id.analytic_account_id.id,
-            "sale_order_template_id": self.bid_template_id.
-            quotation_template_id.id,
+            "sale_order_template_id": self.bid_template_id.quotation_template_id.id,
         }
 
     @api.multi
