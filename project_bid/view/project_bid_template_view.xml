@@ -51,7 +51,6 @@
     <record id="action_project_bid_template_open_form" model="ir.actions.act_window">
         <field name="name">Project Bid Templates</field>
         <field name="res_model">project.bid.template</field>
-        <field name="view_type">form</field>
         <field name="view_mode">tree,form</field>
         <field name="search_view_id" ref="view_project_bid_template_filter" />
     </record>

@@ -3,8 +3,6 @@ import time
 from odoo import _, api, fields, models
 from odoo.exceptions import ValidationError
 
-from odoo.addons import decimal_precision as dp
-
 
 class ProjectBidTotalLabor(models.TransientModel):
     _name = "project.bid.total.labor"
@@ -12,12 +10,12 @@ class ProjectBidTotalLabor(models.TransientModel):
 
     bid_id = fields.Many2one("project.bid", string="Bid", required=True)
     name = fields.Char("Description", size=256)
-    quantity = fields.Float("Hours", digits=dp.get_precision("Product Unit of Measure"))
-    cogs = fields.Float("COGS", digits=dp.get_precision("Account"))
-    overhead = fields.Float("Overhead cost", digits=dp.get_precision("Account"))
-    cost = fields.Float("Total cost", digits=dp.get_precision("Account"))
-    profit = fields.Float("Profit", digits=dp.get_precision("Account"))
-    sell = fields.Float("Revenue", digits=dp.get_precision("Account"))
+    quantity = fields.Float("Hours", digits="Product Unit of Measure")
+    cogs = fields.Float("COGS", digits="Account")
+    overhead = fields.Float("Overhead cost", digits="Account")
+    cost = fields.Float("Total cost", digits="Account")
+    profit = fields.Float("Profit", digits="Account")
+    sell = fields.Float("Revenue", digits="Account")
 
 
 class ProjectBidTotals(models.TransientModel):
@@ -26,11 +24,11 @@ class ProjectBidTotals(models.TransientModel):
 
     bid_id = fields.Many2one("project.bid", string="Bid", required=True)
     name = fields.Char("Description", size=256)
-    cogs = fields.Float("COGS", digits=dp.get_precision("Account"))
-    overhead = fields.Float("Overhead cost", digits=dp.get_precision("Account"))
-    cost = fields.Float("Total cost", digits=dp.get_precision("Account"))
-    profit = fields.Float("Profit", digits=dp.get_precision("Account"))
-    sell = fields.Float("Revenue", digits=dp.get_precision("Account"))
+    cogs = fields.Float("COGS", digits="Account")
+    overhead = fields.Float("Overhead cost", digits="Account")
+    cost = fields.Float("Total cost", digits="Account")
+    profit = fields.Float("Profit", digits="Account")
+    sell = fields.Float("Revenue", digits="Account")
 
 
 class ProjectBid(models.Model):
@@ -38,13 +36,11 @@ class ProjectBid(models.Model):
     _description = "Project Bid"
     _inherit = ["mail.thread"]
 
-    @api.multi
     @api.constrains("parent_id")
     def check_recursion(self):
         if not super(ProjectBid, self)._check_recursion():
             raise ValidationError(_("The parent cannot be itself"))
 
-    @api.multi
     def _get_child_bids(self):
         result = {}
         curr_ids = []
@@ -68,21 +64,20 @@ class ProjectBid(models.Model):
             (tuple(curr_ids),),
         )
         res = self.env.cr.fetchall()
-        for (x, y) in res:
+        for _x, y in res:
             result[y] = True
         return result
 
-    @api.multi
     def get_child_bids(self):
         res = self._get_child_bids()
         return res.keys()
 
-    @api.multi
     def _compute_totals_labor(self):
         for bid in self:
             costs_line_obj = self.env["project.bid.total.labor"]
             vals = []
             items = {}
+            bid.totals_non_material = False
             for component in bid.components:
                 for labor in component.labor:
                     if labor.product_id.id not in items:
@@ -127,7 +122,6 @@ class ProjectBid(models.Model):
                 vals.append(line_id.id)
             bid.totals_non_material = vals
 
-    @api.multi
     def _compute_wbs_totals_labor(self):
         bid_ids = []
         costs_line_obj = self.env["project.bid.total.labor"]
@@ -136,6 +130,7 @@ class ProjectBid(models.Model):
                 bid_ids = bid.get_child_bids()
             vals = []
             items = {}
+            bid.wbs_totals_non_material = False
             for bid_2 in self.browse(bid_ids):
                 for component in bid_2.components:
                     for labor in component.labor:
@@ -181,10 +176,10 @@ class ProjectBid(models.Model):
                 vals.append(line_id.id)
             bid.wbs_totals_non_material = vals
 
-    @api.multi
     def _compute_totals_all(self):
         if self.ids:
             for bid in self:
+                bid.totals_all = False
                 vals = []
                 items = {}
                 material_cogs = 0.0
@@ -263,13 +258,13 @@ class ProjectBid(models.Model):
 
                 bid.totals_all = vals
 
-    @api.multi
     def _compute_wbs_totals_all(self):
         costs_line_obj = self.env["project.bid.totals"]
         bid_ids = []
         if self.ids:
             for bid in self:
                 vals = []
+                bid.wbs_totals_all = False
                 if bid.id and isinstance(bid.id, int):
                     bid_ids = bid.get_child_bids()
                 items = {}
@@ -342,12 +337,14 @@ class ProjectBid(models.Model):
                 vals.append(line_id.id)
                 for val in items.values():
                     val["bid_id"] = bid.id
+                    qty = val.get("quantity")
+                    del val["quantity"]
                     line_id = costs_line_obj.create(val)
+                    val["quantity"] = qty
                     vals.append(line_id.id)
 
                 bid.wbs_totals_all = vals
 
-    @api.multi
     def _compute_totals(self):
         for bid in self:
             total_cogs = 0.0
@@ -384,10 +381,15 @@ class ProjectBid(models.Model):
             bid.total_npm = total_npm
             bid.total_npm_percent = total_npm_percent
 
-    @api.multi
     def _compute_wbs_totals(self):
         bid_ids = []
         for bid in self:
+            bid.wbs_total_income = 0
+            bid.wbs_total_gm_percent = 0
+            bid.wbs_total_gp = 0
+            bid.wbs_total_overhead = 0
+            bid.wbs_total_npm = 0
+            bid.wbs_total_npm_percent = 0
             if bid.id and isinstance(bid.id, int):
                 bid_ids = bid.get_child_bids()
             total_cogs = 0.0
@@ -425,7 +427,6 @@ class ProjectBid(models.Model):
             bid.wbs_total_npm = total_npm
             bid.wbs_total_npm_percent = total_npm_percent
 
-    @api.multi
     def _get_gm_percent(self):
         for bid in self:
             gm_percent = 0.0
@@ -439,7 +440,6 @@ class ProjectBid(models.Model):
                     gm_percent = 0.0
             bid.gm_percent = gm_percent
 
-    @api.multi
     def _compute_complete_code(self):
         res = []
         for bid in self:
@@ -588,92 +588,90 @@ class ProjectBid(models.Model):
         compute="_compute_totals",
         multi="totals",
         string="Revenue",
-        digits=dp.get_precision("Account"),
+        digits="Account",
     )
     total_cogs = fields.Float(
         compute="_compute_totals",
         multi="totals",
-        digits=dp.get_precision("Account"),
+        digits="Account",
         string="Cost of Sales",
     )
     total_gm_percent = fields.Float(
         compute="_compute_totals",
         multi="totals",
-        digits=dp.get_precision("Account"),
+        digits="Account",
         string="Gross Margin (%)",
     )
     total_gp = fields.Float(
         compute="_compute_totals",
         multi="totals",
-        digits=dp.get_precision("Account"),
+        digits="Account",
         string="Gross Profit",
     )
     total_overhead = fields.Float(
         compute="_compute_totals",
         multi="totals",
-        digits=dp.get_precision("Account"),
+        digits="Account",
         string="Total Overhead",
     )
     total_npm = fields.Float(
         compute="_compute_totals",
         multi="totals",
-        digits=dp.get_precision("Account"),
+        digits="Account",
         string="Net Profit Margin",
     )
     total_npm_percent = fields.Float(
         compute="_compute_totals",
         multi="totals",
-        digits=dp.get_precision("Account"),
+        digits="Account",
         string="Net Profit Margin (%)",
     )
     wbs_total_income = fields.Float(
         compute="_compute_wbs_totals",
         multi="wbs_totals",
-        digits=dp.get_precision("Account"),
+        digits="Account",
         string="WBS Total Revenue",
     )
     wbs_total_cogs = fields.Float(
         compute="_compute_totals",
         multi="wbs_totals",
-        digits=dp.get_precision("Account"),
+        digits="Account",
         string="WBS Cost of sales",
     )
     wbs_total_gm_percent = fields.Float(
         compute="_compute_wbs_totals",
         multi="wbs_totals",
-        digits=dp.get_precision("Account"),
+        digits="Account",
         string="WBS Gross Margin (%)",
     )
     wbs_total_gp = fields.Float(
         compute="_compute_wbs_totals",
         multi="wbs_totals",
-        digits=dp.get_precision("Account"),
+        digits="Account",
         string="WBS Gross Profit",
     )
     wbs_total_overhead = fields.Float(
         compute="_compute_wbs_totals",
         multi="wbs_totals",
-        digits=dp.get_precision("Account"),
+        digits="Account",
         string="WBS Total Overhead",
     )
     wbs_total_npm = fields.Float(
         compute="_compute_wbs_totals",
         multi="wbs_totals",
-        digits=dp.get_precision("Account"),
+        digits="Account",
         string="WBS Net profit Margin",
     )
     wbs_total_npm_percent = fields.Float(
         compute="_compute_wbs_totals",
         multi="wbs_totals",
-        digits=dp.get_precision("Account"),
+        digits="Account",
         string="WBS Net Profit Margin %",
     )
-    overhead_rate = fields.Float(
-        "Default Overhead %", digits=dp.get_precision("Account")
-    )
+    overhead_rate = fields.Float("Default Overhead %", digits="Account")
     profit_rate = fields.Float(
         "Default Profit (%) over COGS",
-        digits=dp.get_precision("Account"),
+        digits="Account",
         help="Profit % over COGS",
     )
 
@@ -685,7 +683,6 @@ class ProjectBid(models.Model):
             self.overhead_rate = self.bid_template_id.overhead_rate
             self.profit_rate = self.bid_template_id.profit_rate
 
-    @api.multi
     def copy(self, default=None):
         self.ensure_one()
         if default is None:
@@ -693,13 +690,11 @@ class ProjectBid(models.Model):
         default.update({"state": "draft", "name": ("%s (copy)") % (self.name or "")})
         return super(ProjectBid, self).copy(default)
 
-    @api.multi
     def action_button_confirm(self):
         self.ensure_one()
         self.write({"state": "confirm"})
         return True
 
-    @api.multi
     def action_button_approve(self):
         self.ensure_one()
         vals = {
@@ -710,20 +705,17 @@ class ProjectBid(models.Model):
         self.write(vals)
         return True
 
-    @api.multi
     def action_button_draft(self):
         self.ensure_one()
         vals = {"state": "draft", "approved_on": False, "approved_by": False}
         self.write(vals)
         return True
 
-    @api.multi
     def action_button_cancel(self):
         self.ensure_one()
         self.write({"state": "cancel"})
         return True
 
-    @api.multi
     def code_get(self):
         if len(self) < 1:
             return []
@@ -741,7 +733,6 @@ class ProjectBid(models.Model):
             res.append((item.id, data))
         return res
 
-    @api.multi
     def name_get(self):
         res = []
         for item in self:
@@ -766,7 +757,6 @@ class ProjectBidComponent(models.Model):
     _name = "project.bid.component"
     _description = "Project Bid Component"
 
-    @api.multi
     def name_get(self):
         res = []
         for item in self:
@@ -801,7 +791,6 @@ class ProjectBidComponent(models.Model):
         # Merge both results
         return list(set(names1) | set(names2))[:limit]
 
-    @api.multi
     def _compute_totals(self):
         for record in self:
             labor_cogs = 0.0
@@ -867,7 +856,6 @@ class ProjectBidComponent(models.Model):
             for product in bid_template.default_component_labor:
                 val = {"product_id": product.id, "quantity": 0.0}
                 res.append((0, 0, val))
-            bid_template.labor = res
         return res
 
     @api.model
@@ -879,8 +867,11 @@ class ProjectBidComponent(models.Model):
         return self.env.context.get("overhead_rate") or 0.0
 
     @api.model
-    def _default_bid_id(self):
-        return self.env.context.get("bid_id") or 0.0
+    def default_get(self, fields):
+        rec = super().default_get(fields)
+        bid_id = self.env.context.get("bid_id") or 0.0
+        rec["bid_id"] = bid_id
+        return rec
 
     bid_id = fields.Many2one(
         "project.bid",
@@ -888,7 +879,6 @@ class ProjectBidComponent(models.Model):
         index=True,
         required=True,
         ondelete="cascade",
-        default=_default_bid_id,
     )
     bid_template_id = fields.Many2one(
         related="bid_id.bid_template_id", string="Bid Template", readonly=True
@@ -913,101 +903,100 @@ class ProjectBidComponent(models.Model):
         "Quantity",
         compute="_compute_totals",
         multi="totals",
-        digits=dp.get_precision("Product Unit of Measure"),
+        digits="Product Unit of Measure",
     )
     overhead_rate = fields.Float(
         "Overhead %",
-        digits=dp.get_precision("Account"),
+        digits="Account",
         default=_default_overhead_rate,
     )
     profit_rate = fields.Float(
         "Profit (%) over COGS",
-        digits=dp.get_precision("Account"),
+        digits="Account",
         help="Profit % over COGS",
         default=_default_profit_rate,
     )
     material_cogs = fields.Float(
         compute=_compute_totals,
         string="Material COGS",
-        digits=dp.get_precision("Account"),
+        digits="Account",
     )
     material_overhead = fields.Float(
         compute="_compute_totals",
         string="Material overhead",
-        digits=dp.get_precision("Account"),
+        digits="Account",
     )
     material_cost = fields.Float(
         compute="_compute_totals",
         string="Material cost",
-        digits=dp.get_precision("Account"),
+        digits="Account",
     )
     material_profit = fields.Float(
         compute="_compute_totals",
         string="Material profit",
-        digits=dp.get_precision("Account"),
+        digits="Account",
     )
     material_sell = fields.Float(
         compute="_compute_totals",
         string="Material sell",
-        digits=dp.get_precision("Account"),
+        digits="Account",
     )
     labor_cogs = fields.Float(
         compute="_compute_totals",
         string="Labor COGS",
-        digits=dp.get_precision("Account"),
+        digits="Account",
     )
     labor_overhead = fields.Float(
         compute="_compute_totals",
         string="Labor overhead",
-        digits=dp.get_precision("Account"),
+        digits="Account",
     )
     labor_cost = fields.Float(
         compute="_compute_totals",
         string="Labor cost",
-        digits=dp.get_precision("Account"),
+        digits="Account",
     )
     labor_profit = fields.Float(
         compute="_compute_totals",
         string="Labor profit",
-        digits=dp.get_precision("Account"),
+        digits="Account",
     )
     labor_sell = fields.Float(
         compute="_compute_totals",
         string="Labor sell",
-        digits=dp.get_precision("Account"),
+        digits="Account",
     )
     total_cogs = fields.Float(
         compute="_compute_totals",
         string="Total COGS",
-        digits=dp.get_precision("Account"),
+        digits="Account",
     )
     gross_profit = fields.Float(
         compute="_compute_totals",
         string="Gross profit",
-        digits=dp.get_precision("Account"),
+        digits="Account",
     )
     total_overhead = fields.Float(
         compute="_compute_totals",
         string="Total overhead",
-        digits=dp.get_precision("Account"),
+        digits="Account",
     )
     total_cost = fields.Float(
         compute="_compute_totals",
         string="Total cost",
-        digits=dp.get_precision("Account"),
+        digits="Account",
     )
     total_profit = fields.Float(
         compute="_compute_totals",
         string="Net profit",
-        digits=dp.get_precision("Account"),
+        digits="Account",
     )
     total_sell = fields.Float(
         compute="_compute_totals",
         string="Revenue",
-        digits=dp.get_precision("Account"),
+        digits="Account",
     )
 
-    @api.multi
     def _check_overhead(self):
         for record in self:
             if record.overhead_rate < 0.0:
@@ -1078,7 +1067,6 @@ class ProjectBidComponentMaterial(models.Model):
     _name = "project.bid.component.material"
     _description = "Project Bid Component Material"
 
-    @api.multi
     def _compute_totals(self):
         for record in self:
             total_cogs = record.quantity * record.unit_cost
@@ -1110,40 +1098,36 @@ class ProjectBidComponentMaterial(models.Model):
     bid_id = fields.Many2one(related="bid_component_id.bid_id", readonly=True)
     product_id = fields.Many2one("product.product", "Material product")
     name = fields.Char(related="product_id.name", string="Description", required=True)
-    quantity = fields.Float(
-        "Quantity", digits=dp.get_precision("Product Unit of Measure")
-    )
+    quantity = fields.Float("Quantity", digits="Product Unit of Measure")
     default_code = fields.Char("Part #", help="Material Code")
     uom_id = fields.Many2one(
         comodel_name="uom.uom", related="product_id.uom_id", string="UoM"
     )
-    unit_cost = fields.Float(
-        "Unit Cost", required=True, digits=dp.get_precision("Account")
-    )
+    unit_cost = fields.Float("Unit Cost", required=True, digits="Account")
     cogs = fields.Float(compute="_compute_totals", multi="totals", string="Total COGS")
     overhead = fields.Float(
         compute="_compute_totals",
         multi="totals",
-        digits=dp.get_precision("Account"),
+        digits="Account",
         string="Total overhead",
     )
     cost = fields.Float(
         compute="_compute_totals",
         multi="totals",
-        digits=dp.get_precision("Account"),
+        digits="Account",
         string="Total costs",
     )
     profit = fields.Float(
         compute="_compute_totals",
         multi="totals",
         string="Net profit",
-        digits=dp.get_precision("Account"),
+        digits="Account",
     )
     sell = fields.Float(
         compute="_compute_totals",
         multi="totals",
         string="Revenue",
-        digits=dp.get_precision("Account"),
+        digits="Account",
     )
 
 
@@ -1151,7 +1135,6 @@ class ProjectBidComponentLabor(models.Model):
     _name = "project.bid.component.labor"
     _description = "Project Bid Component Labor"
 
-    @api.multi
     def _compute_totals(self):
         for record in self:
             total_cogs = record.quantity * record.unit_cost
@@ -1178,14 +1161,12 @@ class ProjectBidComponentLabor(models.Model):
     )
     product_id = fields.Many2one("product.product", "Labor product", required=True)
     name = fields.Char(related="product_id.name", string="Description", readonly=True)
-    quantity = fields.Float(
-        "Quantity", digits=dp.get_precision("Product Unit of Measure")
-    )
+    quantity = fields.Float("Quantity", digits="Product Unit of Measure")
     uom_id = fields.Many2one(related="product_id.uom_id", string="UoM", readonly=True)
     unit_cost = fields.Float(
         related="product_id.standard_price",
         string="Unit cost",
-        digits=dp.get_precision("Account"),
+        digits="Account",
         store=False,
         readonly=True,
     )
@@ -1193,32 +1174,32 @@ class ProjectBidComponentLabor(models.Model):
         compute="_compute_totals",
         type="float",
         multi="totals",
-        digits=dp.get_precision("Account"),
+        digits="Account",
         string="Total labor COGS",
     )
     overhead = fields.Float(
         compute="_compute_totals",
         multi="totals",
-        digits=dp.get_precision("Account"),
+        digits="Account",
         string="Total overhead",
     )
     cost = fields.Float(
         compute="_compute_totals",
         multi="totals",
-        digits=dp.get_precision("Account"),
+        digits="Account",
         string="Total costs",
     )
     profit = fields.Float(
         compute="_compute_totals",
         multi="totals",
         string="Net profit",
-        digits=dp.get_precision("Account"),
+        digits="Account",
     )
     sell = fields.Float(
         compute="_compute_totals",
         multi="totals",
         string="Revenue",
-        digits=dp.get_precision("Account"),
+        digits="Account",
     )
 
 
@@ -1226,7 +1207,6 @@ class ProjectBidOtherLabor(models.Model):
     _name = "project.bid.other.labor"
     _description = "Project Bid Other Labor"
 
-    @api.multi
     def _compute_totals(self):
         for record in self:
             cogs = record.quantity * record.unit_cost
@@ -1251,7 +1231,6 @@ class ProjectBidOtherLabor(models.Model):
     def _default_overhead_rate(self):
         return self.env.context.get("overhead_rate") or 0.0
 
-    @api.multi
     def _check_labor_uom(self):
         for record in self:
             template = record.bid_id.bid_template_id
@@ -1268,25 +1247,23 @@ class ProjectBidOtherLabor(models.Model):
     )
     product_id = fields.Many2one("product.product", "Labor product", required=True)
     name = fields.Char(related="product_id.name", string="Description", readonly=True)
-    quantity = fields.Float(
-        "Quantity", digits=dp.get_precision("Product Unit of Measure")
-    )
+    quantity = fields.Float("Quantity", digits="Product Unit of Measure")
     uom_id = fields.Many2one(related="product_id.uom_id", string="UoM", readonly=True)
     unit_cost = fields.Float(
         related="product_id.standard_price",
         string="Unit cost",
-        digits=dp.get_precision("Account"),
+        digits="Account",
         store=False,
         readonly=True,
     )
     overhead_rate = fields.Float(
         "Overhead %",
-        digits=dp.get_precision("Account"),
+        digits="Account",
         default=_default_overhead_rate,
     )
     profit_rate = fields.Float(
         "Profit (%) over COGS",
-        digits=dp.get_precision("Account"),
+        digits="Account",
         help="Profit (%) over COGS",
         default=_default_profit_rate,
     )
@@ -1294,38 +1271,38 @@ class ProjectBidOtherLabor(models.Model):
         compute="_compute_totals",
         multi="totals",
         string="Total COGS",
-        digits=dp.get_precision("Account"),
+        digits="Account",
     )
     overhead = fields.Float(
         compute="_compute_totals",
-        digits=dp.get_precision("Account"),
+        digits="Account",
         multi="totals",
         string="Total overhead",
     )
     cost = fields.Float(
         compute="_compute_totals",
         type="float",
-        digits=dp.get_precision("Account"),
+        digits="Account",
         multi="totals",
         string="Total cost",
     )
     gross_profit = fields.Float(
         compute="_compute_totals",
         multi="totals",
-        digits=dp.get_precision("Account"),
+        digits="Account",
         string="Gross profit",
     )
     profit = fields.Float(
         compute="_compute_totals",
         multi="totals",
         string="Net profit",
-        digits=dp.get_precision("Account"),
+        digits="Account",
     )
     sell = fields.Float(
         compute="_compute_totals",
         multi="totals",
         string="Revenue",
-        digits=dp.get_precision("Account"),
+        digits="Account",
     )
 
     _constraints = [
@@ -1342,7 +1319,6 @@ class ProjectBidOtherExpenses(models.Model):
     _name = "project.bid.other.expenses"
     _description = "Project Bid Other Expenses"
 
-    @api.multi
     def _compute_totals(self):
         for record in self:
             cogs = record.quantity * record.unit_cost
@@ -1378,26 +1354,26 @@ class ProjectBidOtherExpenses(models.Model):
     quantity = fields.Float(
         "Quantity",
         required=True,
-        digits=dp.get_precision("Product Unit of Measure"),
+        digits="Product Unit of Measure",
     )
     unit_cost = fields.Float(
         related="product_id.standard_price",
         string="Unit cost",
         store=False,
         readonly=True,
-        digits=dp.get_precision("Account"),
+        digits="Account",
     )
     uom_id = fields.Many2one(related="product_id.uom_id", string="UoM", readonly=True)
     overhead_rate = fields.Float(
         "Overhead %",
         required=True,
-        digits=dp.get_precision("Account"),
+        digits="Account",
         default=_default_overhead_rate,
     )
     profit_rate = fields.Float(
         "Profit (%) over COGS",
         required=True,
-        digits=dp.get_precision("Account"),
+        digits="Account",
         help="Profit % over COGS",
         default=_default_profit_rate,
     )
@@ -1405,35 +1381,35 @@ class ProjectBidOtherExpenses(models.Model):
         compute="_compute_totals",
         multi="totals",
         string="Total COGS",
-        digits=dp.get_precision("Account"),
+        digits="Account",
     )
     overhead = fields.Float(
         compute="_compute_totals",
         multi="totals",
-        digits=dp.get_precision("Account"),
+        digits="Account",
         string="Total overhead cost",
     )
     cost = fields.Float(
         compute="_compute_totals",
         multi="totals",
         string="Total cost",
-        digits=dp.get_precision("Account"),
+        digits="Account",
     )
     gross_profit = fields.Float(
         compute="_compute_totals",
         multi="totals",
         string="Gross profit",
-        digits=dp.get_precision("Account"),
+        digits="Account",
     )
     profit = fields.Float(
         compute="_compute_totals",
         multi="totals",
         string="Net profit",
-        digits=dp.get_precision("Account"),
+        digits="Account",
     )
     sell = fields.Float(
         compute="_compute_totals",
         multi="totals",
         string="Revenue",
-        digits=dp.get_precision("Account"),
+        digits="Account",
     )
