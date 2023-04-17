@@ -5,12 +5,15 @@ from odoo import fields, models
 
 
 class ProjectBidTemplate(models.Model):
-    _inherit = 'project.bid.template'
+    _inherit = "project.bid.template"
 
-    version_id = fields.Many2one('account.analytic.plan.version',
-                                 'Planning Version', required=True)
+    version_id = fields.Many2one(
+        "account.analytic.plan.version", "Planning Version", required=True
+    )
     revenue_product_id = fields.Many2one(
-        'product.product', 'Revenue product', required=True)
+        "product.product", "Revenue product", required=True
+    )
     expense_product_id = fields.Many2one(
-        'product.product', 'Default material expenses product', required=True)
-    quotation_template_id = fields.Many2one('sale.order.template')
+        "product.product", "Default material expenses product", required=True
+    )
+    quotation_template_id = fields.Many2one("sale.order.template")
