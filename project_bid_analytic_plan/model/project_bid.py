@@ -1,4 +1,4 @@
-# © 2015-17 Eficent Business and IT Consulting Services S.L.
+# © 2023 ForgeFlow S.L.
 # License LGPL-3.0 or later (https://www.gnu.org/licenses/lgpl.html).
 
 from odoo import _, api, fields, models
@@ -57,7 +57,7 @@ class ProjectBid(models.Model):
         )
         if not journal_id:
             raise ValidationError(
-                "No expense journal defined in the product %s" % product_id.name
+                _("No expense journal defined in the product %s") % product_id.name
             )
         version_id = line.bid_id.bid_template_id.version_id.id or False
 
@@ -117,7 +117,6 @@ class ProjectBid(models.Model):
             res.append(line_id)
         return res
 
-    @api.multi
     def _prepare_revenue_plan_lines(self):
         plan_version_obj = self.env["account.analytic.plan.version"]
         for bid in self:
@@ -187,7 +186,6 @@ class ProjectBid(models.Model):
                 }
             ]
 
-    @api.multi
     def create_revenue_plan_lines(self):
         self.ensure_one()
         res = []
@@ -198,7 +196,6 @@ class ProjectBid(models.Model):
             res.append(line_id)
         return res
 
-    @api.multi
     def action_button_transfer_to_project(self):
         res = {}
         self._delete_analytic_lines()
@@ -224,30 +221,26 @@ class ProjectBid(models.Model):
             bid.write({"plan_lines": [(6, 0, line_ids)]})
         return res
 
-    @api.multi
     def _delete_analytic_lines(self):
         for bid in self:
             for line in bid.plan_lines:
                 line.unlink()
         return True
 
-    @api.multi
     def action_button_draft(self):
         res = super(ProjectBid, self).action_button_draft()
         self._delete_analytic_lines()
         return res
 
-    @api.multi
     def action_button_cancel(self):
         res = super(ProjectBid, self).action_button_cancel()
         self._delete_analytic_lines()
         return res
 
-    @api.multi
     def prepare_sale_order(self):
         template = self.bid_template_id.quotation_template_id
         if not template:
-            raise ValidationError("No quotation tempalte in the bid template")
+            raise ValidationError(_("No quotation tempalte in the bid template"))
         return {
             "partner_id": self.partner_id.id,
             "project_bid_id": self.id,
@@ -255,9 +248,8 @@ class ProjectBid(models.Model):
             "sale_order_template_id": self.bid_template_id.quotation_template_id.id,
         }
 
-    @api.multi
     def action_button_create_quotation(self):
-        for bid in self:
+        for _bid in self:
             so_vals = self.prepare_sale_order()
             so = self.env["sale.order"].create(so_vals)
             so.onchange_sale_order_template_id()

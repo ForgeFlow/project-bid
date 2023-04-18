@@ -19,8 +19,8 @@ Credits
 Contributors
 ------------
 
-* Jordi Ballester Alomar <jordi.ballester@eficent.com>
-* Aarón Henríquez <ahenriquez@eficent.com>
+* Jordi Ballester Alomar <jordi.ballester@forgeflow.com>
+* Aarón Henríquez <ahenriquez@forgeflow.com>
 
 Maintainer
 ----------
@@ -29,4 +29,4 @@ Maintainer
    :alt: Odoo Community Association
    :target: https://odoo-community.org
 
-This module is maintained by Eficent.
+This module is maintained by Forgeflow.
