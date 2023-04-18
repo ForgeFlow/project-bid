@@ -49,9 +49,7 @@
                     <group>
                         <field name="project_id" />
                     </group>
-                    <group>
-                        <field name="plan_lines" readonly="1" nolabel="1" />
-                    </group>
+                    <field name="plan_lines" readonly="1" nolabel="1" />
                 </page>
                 <page string="Quotations" name="quote">
                     <group>

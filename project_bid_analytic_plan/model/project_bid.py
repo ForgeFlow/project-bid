@@ -70,12 +70,9 @@ class ProjectBid(models.Model):
             raise ValidationError(
                 _(
                     "There is no expense account defined for this product:"
-                    ' "%s" (id:%d)'
+                    ' "%(name)s" (id:%(id)d)'
                 )
-                % (
-                    product_id.name,
-                    product_id.id,
-                )
+                % ({"name": product_id.name, "id": product_id.id})
             )
         default_plan_ids = plan_version_obj.search([("default_plan", "=", True)])
         if default_plan_ids:
@@ -129,13 +126,10 @@ class ProjectBid(models.Model):
             if not journal_id:
                 raise ValidationError(
                     _(
-                        "There is no expense journal defined "
-                        'for this product: "%s" (id:%d)'
+                        "There is no expense journal defined for this product:"
+                        ' "%(name)s" (id:%(id)d)'
                     )
-                    % (
-                        product_id.name,
-                        product_id.id,
-                    )
+                    % ({"name": product_id.name, "id": product_id.id})
                 )
             version_id = bid.bid_template_id.version_id.id or False
 
@@ -149,13 +143,10 @@ class ProjectBid(models.Model):
             if not general_account_id:
                 raise ValidationError(
                     _(
-                        "There is no expense account defined "
-                        'for this product: "%s" (id:%d)'
+                        "There is no expense account defined for this product:"
+                        ' "%(name)s" (id:%(id)d)'
                     )
-                    % (
-                        product_id.name,
-                        product_id.id,
-                    )
+                    % ({"name": product_id.name, "id": product_id.id})
                 )
             default_plan = plan_version_obj.search([("default_plan", "=", True)])
             account_id = bid.project_id.analytic_account_id
